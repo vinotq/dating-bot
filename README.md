@@ -16,8 +16,8 @@ ___
 
 ## Диаграммы
 
-- [Диаграмма компонентов](diagrams/component-diagram.md) — сервисы, инфраструктура, направления вызовов (HTTP/MQ)
-- [Регистрация и создание анкеты](diagrams/sequence-registration-profile.md) — поток от `/start` до профиля с фото
-- [Просмотр анкет и свайп](diagrams/sequence-feed-swipe.md) — лента, карточка, лайк, мэтч
-- [Потоки данных](diagrams/data-flow-diagram.md) — анкета, рейтинг, свайп, уведомления, фоновые задачи
+- [Диаграмма компонентов](docs/component-diagram.md) — сервисы, инфраструктура, направления вызовов (HTTP/MQ)
+- [Регистрация и создание анкеты](docs/sequence-registration-profile.md) — поток от `/start` до профиля с фото
+- [Просмотр анкет и свайп](docs/sequence-feed-swipe.md) — лента, карточка, лайк, мэтч
+- [Потоки данных](docs/data-flow-diagram.md) — анкета, рейтинг, свайп, уведомления, фоновые задачи
 - [Схема БД (DBML)](https://dbdiagram.io/d/DatingBot-69b5752efb2db18e3b7cdf4e) — таблицы 
