@@ -39,6 +39,7 @@ flowchart TB
     RANK --> REDIS
     RANK --> CELERY
     CELERY --> MQ
+    CELERY -->MINIO
 
     USER --> MINIO
 
@@ -59,8 +60,8 @@ flowchart TB
 
 ## Легенда
 
-| Тип связи | Описание |
-|-----------|----------|
-| HTTP REST | Синхронные запросы (профили, свайпы, лента) |
+| Тип связи | Описание                                                                  |
+| --------- | ------------------------------------------------------------------------- |
+| HTTP REST | Синхронные запросы (профили, свайпы, лента)                               |
 | MQ events | Асинхронные события (`match.created`, `profile.updated`, `swipe.created`) |
-| metrics | Экспорт метрик для Prometheus |
+| metrics   | Экспорт метрик для Prometheus                                             |
