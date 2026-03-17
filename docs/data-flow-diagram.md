@@ -47,10 +47,10 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    BEAT[Celery] --> MQ[RabbitMQ]
-    MQ --> WORKER[Celery]
+    BEAT[Celery Beat] --> MQ[RabbitMQ]
+    MQ --> WORKER[Celery Worker]
     WORKER --> PG[(PostgreSQL)]
     WORKER --> REDIS[(Redis)]
 ```
 
-Celery по расписанию отправляет задачи в RabbitMQ. Он же выполняет пересчёт рейтингов, предзагрузку ленты, записывает в PostgreSQL и Redis.
+Celery Beat по расписанию отправляет задачи в RabbitMQ. Celery Worker выполняет пересчёт рейтингов, предзагрузку ленты, записывает в PostgreSQL и Redis.
