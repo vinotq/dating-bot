@@ -1,1 +1,3 @@
 /tech
+.env
+/__pycache__
