@@ -1,0 +1,62 @@
+services:
+    postgres:
+        image: postgres:15
+        environment:
+            POSTGRES_DB: dating_bot
+            POSTGRES_USER: dating_user
+            POSTGRES_PASSWORD: dating_pass
+        ports:
+            - "6531:5432"
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+
+    redis:
+        image: redis:7-alpine
+        ports:
+            - "6379:6379"
+
+    minio:
+        image: minio/minio
+        command: server /data --console-address ":9001"
+        environment:
+            MINIO_ROOT_USER: minioadmin
+            MINIO_ROOT_PASSWORD: minioadmin
+        ports:
+            - "9000:9000"
+            - "9001:9001"
+        volumes:
+            - minio_data:/data
+        healthcheck:
+            test: ["CMD", "mc", "ready", "local"]
+            interval: 5s
+            timeout: 5s
+            retries: 5
+
+    user_service:
+        build: ./services/user_service
+        environment:
+            DATABASE_URL: postgresql+asyncpg://dating_user:dating_pass@postgres:5432/dating_bot
+            MINIO_ENDPOINT: minio:9000
+            MINIO_ACCESS_KEY: minioadmin
+            MINIO_SECRET_KEY: minioadmin
+            MINIO_BUCKET: dating-photos
+            MINIO_USE_SSL: "false"
+        depends_on:
+            - postgres
+            - minio
+        ports:
+            - "8000:8000"
+
+    bot_service:
+        build: ./services/bot_service
+        environment:
+            TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+            USER_SERVICE_URL: http://user_service:8000
+            REDIS_DSN: redis://redis:6379/0
+        depends_on:
+            - redis
+            - user_service
+
+volumes:
+    postgres_data:
+    minio_data:
