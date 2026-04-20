@@ -34,7 +34,7 @@ docker compose exec db psql -U postgres -d store
 
 **OrderItems** (OrderItemID, OrderID, ProductID, Quantity, Subtotal)
 
-Ваша задача -написать транзакции SQL для реализации следующих сценариев:
+Ваша задача - написать транзакции SQL для реализации следующих сценариев:
 
 **Сценарий 1:**
 
