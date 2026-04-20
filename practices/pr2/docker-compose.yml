@@ -1,0 +1,51 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: pr2-rabbit
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+    deploy:
+      resources:
+        limits:
+          cpus: "6.0"
+          memory: 4096M
+
+  redis:
+    image: redis:7-alpine
+    container_name: pr2-redis
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+    deploy:
+      resources:
+        limits:
+          cpus: "6.0"
+          memory: 4096M
+
+  runner:
+    build: .
+    container_name: pr2-runner
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      RABBIT_HOST: rabbitmq
+      RABBIT_PORT: "5672"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+    volumes:
+      - ./results:/app/results
+    command: ["python", "run_tests.py"]
