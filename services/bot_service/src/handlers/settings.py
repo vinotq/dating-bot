@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from constants import LOOKING_FROM_API, LOOKING_TO_API
-from dependencies import user_client
+from dependencies import ranking_client, user_client
 from formatters import format_search_age_range, parse_settings_age_max
 from keyboards import BTN_BACK, back_keyboard, main_menu_keyboard
 from states import EditStates
@@ -116,6 +116,10 @@ async def settings_age_max_input(message: Message, state: FSMContext) -> None:
         return
     prefs = await user_client.update_preferences(user_id, looking_for_gender, age_min, age_max)
     await state.clear()
+    try:
+        await ranking_client.reset_feed(user_id)
+    except Exception:
+        pass
     await message.answer(
         f"Сохранил: {LOOKING_FROM_API.get(prefs['looking_for_gender'], prefs['looking_for_gender'])}, "
         f"{format_search_age_range(prefs['age_min'], prefs['age_max'])}",

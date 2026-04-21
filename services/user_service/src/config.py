@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     minio_secret_key: str = "minioadmin"
     minio_bucket: str = "dating-photos"
     minio_use_ssl: bool = False
+    rabbitmq_url: str = "amqp://guest:guest@rabbitmq:5672/"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

@@ -9,11 +9,35 @@ services:
             - "6531:5432"
         volumes:
             - postgres_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U dating_user -d dating_bot"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
 
     redis:
         image: redis:7-alpine
         ports:
             - "6379:6379"
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 5s
+            timeout: 3s
+            retries: 10
+
+    rabbitmq:
+        image: rabbitmq:3-management
+        environment:
+            RABBITMQ_DEFAULT_USER: rabbitadmin
+            RABBITMQ_DEFAULT_PASS: rabbitadminW
+        ports:
+            - "5672:5672"
+            - "15672:15672"
+        healthcheck:
+            test: ["CMD", "rabbitmq-diagnostics", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 10
 
     minio:
         image: minio/minio
@@ -41,21 +65,66 @@ services:
             MINIO_SECRET_KEY: minioadmin
             MINIO_BUCKET: dating-photos
             MINIO_USE_SSL: "false"
+            RABBITMQ_URL: amqp://rabbitadmin:rabbitadminW@rabbitmq:5672/
         depends_on:
-            - postgres
-            - minio
+            postgres:
+                condition: service_healthy
+            minio:
+                condition: service_healthy
+            rabbitmq:
+                condition: service_healthy
         ports:
             - "8000:8000"
+
+    matching_service:
+        build: ./services/matching_service
+        environment:
+            DATABASE_URL: postgresql+asyncpg://dating_user:dating_pass@postgres:5432/dating_bot
+            RABBITMQ_URL: amqp://rabbitadmin:rabbitadminW@rabbitmq:5672/
+        depends_on:
+            postgres:
+                condition: service_healthy
+            rabbitmq:
+                condition: service_healthy
+        ports:
+            - "8001:8000"
+
+    ranking_service:
+        build: ./services/ranking_service
+        environment:
+            DATABASE_URL: postgresql+asyncpg://dating_user:dating_pass@postgres:5432/dating_bot
+            REDIS_DSN: redis://redis:6379/0
+            RABBITMQ_URL: amqp://rabbitadmin:rabbitadminW@rabbitmq:5672/
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            rabbitmq:
+                condition: service_healthy
+        ports:
+            - "8002:8000"
 
     bot_service:
         build: ./services/bot_service
         environment:
             TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
             USER_SERVICE_URL: http://user_service:8000
+            RANKING_SERVICE_URL: http://ranking_service:8000
+            MATCHING_SERVICE_URL: http://matching_service:8000
             REDIS_DSN: redis://redis:6379/0
+            RABBITMQ_URL: amqp://rabbitadmin:rabbitadminW@rabbitmq:5672/
         depends_on:
-            - redis
-            - user_service
+            redis:
+                condition: service_healthy
+            rabbitmq:
+                condition: service_healthy
+            user_service:
+                condition: service_started
+            matching_service:
+                condition: service_started
+            ranking_service:
+                condition: service_started
 
 volumes:
     postgres_data:

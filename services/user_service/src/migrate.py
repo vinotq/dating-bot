@@ -17,6 +17,14 @@ async def run_migrations() -> None:
         print("create_all …")
         await conn.run_sync(Base.metadata.create_all)
 
+        print("column looking_for_gender (IF NOT EXISTS) …")
+        await conn.execute(
+            text("""
+                ALTER TABLE users_schema.profiles
+                ADD COLUMN IF NOT EXISTS looking_for_gender VARCHAR(20) NOT NULL DEFAULT 'any'
+            """)
+        )
+
         print("columns age_min / age_max (IF NOT EXISTS) …")
         await conn.execute(
             text("""
