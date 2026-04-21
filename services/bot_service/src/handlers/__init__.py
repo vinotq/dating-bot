@@ -6,9 +6,11 @@ from handlers.registration import router as registration_router
 from handlers.edit import router as edit_router
 from handlers.photos import router as photos_router
 from handlers.settings import router as settings_router
+from handlers.search import router as search_router
 
 router = Router()
 router.include_router(help_router)
+router.include_router(search_router)
 router.include_router(profile_router)
 router.include_router(registration_router)
 router.include_router(edit_router)
