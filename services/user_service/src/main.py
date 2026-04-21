@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import settings
 from src.db import get_db
+from src import mq
 from src.models import Interest, Photo, Profile, User, UserInterest
 from src.schemas import (
     InterestCreate,
@@ -98,6 +99,7 @@ async def recalculate_completeness(db: AsyncSession, profile: Profile) -> None:
 
 @app.on_event("startup")
 async def startup() -> None:
+    await mq.connect()
     global _minio
     # DDL выполняется в `python -m src.migrate` перед uvicorn (см. Dockerfile).
     _minio = Minio(
@@ -120,6 +122,15 @@ async def create_user(payload: UserCreate, db: AsyncSession = Depends(get_db)) -
     db.add(user)
     await db.commit()
     await db.refresh(user)
+    await mq.publish("user.registered", {"user_id": str(user.id), "telegram_id": user.telegram_id})
+    return user
+
+
+@app.get("/api/v1/users/by-uuid/{user_id}", response_model=UserOut)
+async def get_user_by_uuid(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> User:
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
     return user
 
 
@@ -144,6 +155,7 @@ async def create_profile(payload: ProfileCreate, db: AsyncSession = Depends(get_
     await recalculate_completeness(db, profile)
     await db.commit()
     await db.refresh(profile)
+    await mq.publish("profile.created", {"user_id": str(profile.user_id), "profile_id": str(profile.id), "completeness_score": profile.completeness_score})
     return profile
 
 
@@ -180,6 +192,7 @@ async def update_profile(profile_id: uuid.UUID, payload: ProfileUpdate, db: Asyn
     await recalculate_completeness(db, profile)
     await db.commit()
     await db.refresh(profile)
+    await mq.publish("profile.updated", {"user_id": str(profile.user_id), "profile_id": str(profile.id), "completeness_score": profile.completeness_score})
     return profile
 
 
@@ -229,6 +242,8 @@ async def upload_photo(
     await recalculate_completeness(db, profile)
     await db.commit()
     await db.refresh(photo)
+    photo_count = await db.scalar(select(text("count(*)")).select_from(Photo).where(Photo.profile_id == profile_id))
+    await mq.publish("photo.uploaded", {"user_id": str(profile.user_id), "profile_id": str(profile_id), "photo_count": int(photo_count or 0)})
     return photo
 
 
