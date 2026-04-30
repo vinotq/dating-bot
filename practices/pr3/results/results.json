@@ -1,0 +1,263 @@
+{
+  "results": [
+    {
+      "strategy": "cache_aside",
+      "workload": "read_heavy",
+      "params": {
+        "read_ratio": 0.8,
+        "total_ops": 20000,
+        "concurrency": 16,
+        "key_space": 200
+      },
+      "duration_s": 13.0315,
+      "ops_total": 20000,
+      "ops_errors": 0,
+      "throughput_rps": 1534.74,
+      "avg_latency_ms": 10.237,
+      "p50_latency_ms": 0.408,
+      "p95_latency_ms": 35.702,
+      "p99_latency_ms": 44.855,
+      "db_reads": 3684,
+      "db_writes": 4038,
+      "cache_hits": 12278,
+      "cache_misses": 3684,
+      "cache_hit_rate": 0.7692
+    },
+    {
+      "strategy": "write_through",
+      "workload": "read_heavy",
+      "params": {
+        "read_ratio": 0.8,
+        "total_ops": 20000,
+        "concurrency": 16,
+        "key_space": 200
+      },
+      "duration_s": 7.7851,
+      "ops_total": 20000,
+      "ops_errors": 0,
+      "throughput_rps": 2569.01,
+      "avg_latency_ms": 6.08,
+      "p50_latency_ms": 0.317,
+      "p95_latency_ms": 33.531,
+      "p99_latency_ms": 46.672,
+      "db_reads": 197,
+      "db_writes": 4038,
+      "cache_hits": 15765,
+      "cache_misses": 197,
+      "cache_hit_rate": 0.9877
+    },
+    {
+      "strategy": "write_back",
+      "workload": "read_heavy",
+      "params": {
+        "read_ratio": 0.8,
+        "total_ops": 20000,
+        "concurrency": 16,
+        "key_space": 200
+      },
+      "duration_s": 2.1193,
+      "ops_total": 20000,
+      "ops_errors": 0,
+      "throughput_rps": 9437.11,
+      "avg_latency_ms": 1.667,
+      "p50_latency_ms": 1.032,
+      "p95_latency_ms": 4.038,
+      "p99_latency_ms": 10.544,
+      "db_reads": 203,
+      "db_writes": 2578,
+      "cache_hits": 15759,
+      "cache_misses": 203,
+      "cache_hit_rate": 0.9873,
+      "pending_before_flush": 3438,
+      "final_flush_s": 0.1263
+    },
+    {
+      "strategy": "cache_aside",
+      "workload": "balanced",
+      "params": {
+        "read_ratio": 0.5,
+        "total_ops": 20000,
+        "concurrency": 16,
+        "key_space": 200
+      },
+      "duration_s": 35.3746,
+      "ops_total": 20000,
+      "ops_errors": 0,
+      "throughput_rps": 565.38,
+      "avg_latency_ms": 28.099,
+      "p50_latency_ms": 32.162,
+      "p95_latency_ms": 52.916,
+      "p99_latency_ms": 68.19,
+      "db_reads": 5167,
+      "db_writes": 10090,
+      "cache_hits": 4743,
+      "cache_misses": 5167,
+      "cache_hit_rate": 0.4786
+    },
+    {
+      "strategy": "write_through",
+      "workload": "balanced",
+      "params": {
+        "read_ratio": 0.5,
+        "total_ops": 20000,
+        "concurrency": 16,
+        "key_space": 200
+      },
+      "duration_s": 25.363,
+      "ops_total": 20000,
+      "ops_errors": 0,
+      "throughput_rps": 788.55,
+      "avg_latency_ms": 20.015,
+      "p50_latency_ms": 21.036,
+      "p95_latency_ms": 51.922,
+      "p99_latency_ms": 67.814,
+      "db_reads": 121,
+      "db_writes": 10090,
+      "cache_hits": 9789,
+      "cache_misses": 121,
+      "cache_hit_rate": 0.9878
+    },
+    {
+      "strategy": "write_back",
+      "workload": "balanced",
+      "params": {
+        "read_ratio": 0.5,
+        "total_ops": 20000,
+        "concurrency": 16,
+        "key_space": 200
+      },
+      "duration_s": 1.8966,
+      "ops_total": 20000,
+      "ops_errors": 0,
+      "throughput_rps": 10545.22,
+      "avg_latency_ms": 1.494,
+      "p50_latency_ms": 0.981,
+      "p95_latency_ms": 3.73,
+      "p99_latency_ms": 6.531,
+      "db_reads": 121,
+      "db_writes": 6374,
+      "cache_hits": 9789,
+      "cache_misses": 121,
+      "cache_hit_rate": 0.9878,
+      "pending_before_flush": 9490,
+      "final_flush_s": 0.4678
+    },
+    {
+      "strategy": "cache_aside",
+      "workload": "write_heavy",
+      "params": {
+        "read_ratio": 0.2,
+        "total_ops": 20000,
+        "concurrency": 16,
+        "key_space": 200
+      },
+      "duration_s": 51.4245,
+      "ops_total": 20000,
+      "ops_errors": 0,
+      "throughput_rps": 388.92,
+      "avg_latency_ms": 41.09,
+      "p50_latency_ms": 40.168,
+      "p95_latency_ms": 65.064,
+      "p99_latency_ms": 82.342,
+      "db_reads": 3157,
+      "db_writes": 16142,
+      "cache_hits": 701,
+      "cache_misses": 3157,
+      "cache_hit_rate": 0.1817
+    },
+    {
+      "strategy": "write_through",
+      "workload": "write_heavy",
+      "params": {
+        "read_ratio": 0.2,
+        "total_ops": 20000,
+        "concurrency": 16,
+        "key_space": 200
+      },
+      "duration_s": 44.4033,
+      "ops_total": 20000,
+      "ops_errors": 0,
+      "throughput_rps": 450.42,
+      "avg_latency_ms": 35.353,
+      "p50_latency_ms": 38.723,
+      "p95_latency_ms": 63.612,
+      "p99_latency_ms": 81.488,
+      "db_reads": 46,
+      "db_writes": 16142,
+      "cache_hits": 3812,
+      "cache_misses": 46,
+      "cache_hit_rate": 0.9881
+    },
+    {
+      "strategy": "write_back",
+      "workload": "write_heavy",
+      "params": {
+        "read_ratio": 0.2,
+        "total_ops": 20000,
+        "concurrency": 16,
+        "key_space": 200
+      },
+      "duration_s": 1.7859,
+      "ops_total": 20000,
+      "ops_errors": 0,
+      "throughput_rps": 11198.76,
+      "avg_latency_ms": 1.381,
+      "p50_latency_ms": 0.974,
+      "p95_latency_ms": 3.636,
+      "p99_latency_ms": 5.731,
+      "db_reads": 42,
+      "db_writes": 10215,
+      "cache_hits": 3816,
+      "cache_misses": 42,
+      "cache_hit_rate": 0.9891,
+      "pending_before_flush": 15742,
+      "final_flush_s": 0.8044
+    }
+  ],
+  "write_back_accumulation": {
+    "burst_writes": 5000,
+    "burst_duration_s": 0.1656,
+    "burst_throughput_rps": 30189.67,
+    "snapshots": [
+      {
+        "after_writes": 1,
+        "elapsed_s": 0.0001,
+        "dirty_queue": 1,
+        "db_writes_so_far": 0
+      },
+      {
+        "after_writes": 501,
+        "elapsed_s": 0.0177,
+        "dirty_queue": 501,
+        "db_writes_so_far": 0
+      },
+      {
+        "after_writes": 1001,
+        "elapsed_s": 0.0351,
+        "dirty_queue": 1001,
+        "db_writes_so_far": 0
+      },
+      {
+        "after_writes": 2001,
+        "elapsed_s": 0.0673,
+        "dirty_queue": 2001,
+        "db_writes_so_far": 0
+      },
+      {
+        "after_writes": 3501,
+        "elapsed_s": 0.1159,
+        "dirty_queue": 3501,
+        "db_writes_so_far": 0
+      },
+      {
+        "after_writes": 5000,
+        "elapsed_s": 0.1656,
+        "dirty_queue": 5000,
+        "db_writes_so_far": 0
+      }
+    ],
+    "dirty_before_final_drain": 5000,
+    "drain_duration_s": 0.1181,
+    "final_db_writes": 2000
+  }
+}
