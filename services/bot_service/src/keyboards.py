@@ -3,6 +3,8 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 BTN_MAIN_PROFILE = "Мой профиль"
 BTN_MAIN_HELP = "Помощь"
+BTN_MAIN_SEARCH = "Смотреть анкеты"
+BTN_MAIN_MATCHES = "Мои мэтчи"
 BTN_START_SURVEY = "Запустить анкету"
 BTN_BACK = "Назад"
 BTN_SKIP = "Пропустить"
@@ -12,6 +14,8 @@ MAIN_MENU_TEXTS = frozenset(
     {
         BTN_MAIN_PROFILE,
         BTN_MAIN_HELP,
+        BTN_MAIN_SEARCH,
+        BTN_MAIN_MATCHES,
     }
 )
 
@@ -46,10 +50,29 @@ def back_skip_keyboard() -> ReplyKeyboardMarkup:
 def main_menu_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=BTN_MAIN_PROFILE), KeyboardButton(text=BTN_MAIN_HELP)],
+            [KeyboardButton(text=BTN_MAIN_SEARCH), KeyboardButton(text=BTN_MAIN_PROFILE)],
+            [KeyboardButton(text=BTN_MAIN_MATCHES), KeyboardButton(text=BTN_MAIN_HELP)],
         ],
         resize_keyboard=True,
     )
+
+
+def matches_keyboard(items: list[tuple[str, str]]) -> InlineKeyboardMarkup:
+    """items: list of (button_text, partner_user_id)."""
+    builder = InlineKeyboardBuilder()
+    for text, partner_id in items:
+        safe_text = text[:64]
+        builder.button(text=safe_text, callback_data=f"match:open:{partner_id}")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def swipe_keyboard(swiped_user_id: str) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="❤️ Лайк", callback_data=f"sw:like:{swiped_user_id}")
+    builder.button(text="👎 Пропустить", callback_data=f"sw:skip:{swiped_user_id}")
+    builder.adjust(2)
+    return builder.as_markup()
 
 
 def start_only_keyboard() -> ReplyKeyboardMarkup:

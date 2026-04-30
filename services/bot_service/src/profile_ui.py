@@ -79,10 +79,12 @@ async def send_profile_card(
 async def send_help(message: Message) -> None:
     await message.answer(
         "<b>Вот что умею</b>\n\n"
-        "<b>Мой профиль</b> — <i>карточка, добавление фото, порядок и удаление, настройки</i>\n"
+        "<b>Смотреть анкеты</b> — <i>лента с лайком и пропуском</i>\n"
+        "<b>Мой профиль</b> — <i>карточка, фото, настройки</i>\n"
+        "<b>Мои мэтчи</b> — <i>взаимные лайки</i>\n"
         "<b>Помощь</b> — <i>это сообщение</i>\n\n"
-        "<i>Заново пройти анкету или зайти в бота — /start. "
-        "Команды в чате: /profile, /settings, /help</i>"
+        "<i>Команды: /start, /search, /matches, /profile, /settings, /help</i>",
+        parse_mode="HTML",
     )
 
 
