@@ -1,9 +1,30 @@
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from dependencies import user_client
-from keyboards import main_menu_keyboard
+from keyboards import cancel_keyboard, main_menu_keyboard
 from profile_ui import send_profile_content
+
+router = Router()
+
+
+async def send_busy_message(message: Message) -> None:
+    await message.answer(
+        "<b>Погоди</b> — <i>сначала ответь на вопрос выше.</i>",
+        reply_markup=cancel_keyboard(),
+    )
+
+
+@router.callback_query(F.data == "cancel_flow")
+async def cancel_flow(cb: CallbackQuery, state: FSMContext) -> None:
+    await state.clear()
+    await cb.message.edit_reply_markup(reply_markup=None)
+    await cb.message.answer(
+        "Действие отменено.",
+        reply_markup=main_menu_keyboard(),
+    )
+    await cb.answer()
 
 
 async def allow_main_menu(state: FSMContext) -> bool:
@@ -11,7 +32,11 @@ async def allow_main_menu(state: FSMContext) -> bool:
     if st is None:
         return True
     name = str(st)
-    return not (name.startswith("RegistrationStates:") or name.startswith("EditStates:"))
+    return not (
+        name.startswith("RegistrationStates:")
+        or name.startswith("EditStates:")
+        or name.startswith("ChatState:")
+    )
 
 
 async def require_profile_for_inline_edit(cb: CallbackQuery) -> dict | None:
@@ -50,7 +75,5 @@ async def update_current_profile(message: Message, updates: dict) -> bool:
         )
         return False
     updated = await user_client.update_profile(profile["id"], updates)
-    await message.answer("<b>Ок</b>, <i>записал</i>.")
     await send_profile_content(message, updated)
-    await message.answer("\u2060", reply_markup=main_menu_keyboard())
     return True

@@ -33,7 +33,9 @@ def profile_text_html(profile: dict) -> str:
         f"<b>Пол:</b> {gender}\n"
         f"<b>Город:</b> {city}\n"
         f"<b>О себе:</b> {bio}\n"
-        f"<i>Анкета заполнена на {profile['completeness_score']}%</i>\n"
+        f"<i>Анкета заполнена на {profile['completeness_score']}%</i>"
+        + ("" if profile['completeness_score'] >= 100 else
+           " · <i>добавь фото и «о себе» — это повышает видимость</i>") + "\n"
         f"<b>Кого хочу видеть:</b> {looking}, "
         f"<i>{format_search_age_range(profile['age_min'], profile['age_max'])}</i>"
     )

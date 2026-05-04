@@ -4,7 +4,7 @@ from aiogram.types import BufferedInputFile, InputMediaPhoto, Message
 
 from dependencies import user_client
 from formatters import profile_caption_for_photo
-from keyboards import main_menu_keyboard, profile_edit_keyboard
+from keyboards import profile_edit_keyboard
 
 
 def sorted_profile_photos(photos: list[dict]) -> list[dict]:
@@ -72,19 +72,24 @@ async def send_profile_card(
     first_menu_message: Message | None = None,
 ) -> None:
     await send_profile_content(message, profile)
-    if first_menu_message is None:
-        await message.answer("\u2060", reply_markup=main_menu_keyboard())
 
 
 async def send_help(message: Message) -> None:
+    from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Смотреть анкеты", callback_data="help:search"),
+         InlineKeyboardButton(text="Мой профиль", callback_data="help:profile")],
+        [InlineKeyboardButton(text="Мои мэтчи", callback_data="help:matches"),
+         InlineKeyboardButton(text="Настройки", callback_data="help:settings")],
+    ])
     await message.answer(
         "<b>Вот что умею</b>\n\n"
         "<b>Смотреть анкеты</b> — <i>лента с лайком и пропуском</i>\n"
         "<b>Мой профиль</b> — <i>карточка, фото, настройки</i>\n"
         "<b>Мои мэтчи</b> — <i>взаимные лайки</i>\n"
-        "<b>Помощь</b> — <i>это сообщение</i>\n\n"
-        "<i>Команды: /start, /search, /matches, /profile, /settings, /help</i>",
+        "<b>Настройки</b> — <i>кого показывать, возраст, уведомления</i>",
         parse_mode="HTML",
+        reply_markup=kb,
     )
 
 

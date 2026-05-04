@@ -20,13 +20,18 @@ class UserClient:
         response.raise_for_status()
         return response.json()
 
-    async def create_user(self, telegram_id: int, username: str | None) -> dict:
-        response = await self.client.post(
-            f"{self.base_url}/api/v1/users",
-            json={"telegram_id": telegram_id, "username": username},
-        )
+    async def create_user(self, telegram_id: int, username: str | None, referral_code: str | None = None) -> dict:
+        payload: dict = {"telegram_id": telegram_id, "username": username}
+        if referral_code:
+            payload["referral_code"] = referral_code
+        response = await self.client.post(f"{self.base_url}/api/v1/users", json=payload)
         response.raise_for_status()
         return response.json()
+
+    async def get_referral_code(self, user_id: str) -> str:
+        response = await self.client.post(f"{self.base_url}/api/v1/users/{user_id}/referral-code")
+        response.raise_for_status()
+        return response.json()["referral_code"]
 
     async def get_profile_by_user(self, user_id: str) -> dict | None:
         response = await self.client.get(f"{self.base_url}/api/v1/profiles/by-user/{user_id}")

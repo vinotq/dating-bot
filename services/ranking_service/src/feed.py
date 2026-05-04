@@ -60,7 +60,9 @@ async def build_feed_from_db(
     requester_user_id: uuid.UUID,
     limit: int = 10,
     exclude_profile_ids: set[str] | None = None,
+    exclude_user_ids: list[str] | None = None,
 ) -> list[dict]:
+    swiped = exclude_user_ids or []
     rows = await db.execute(
         text("""
             SELECT
@@ -93,11 +95,7 @@ async def build_feed_from_db(
             ) ph ON true
             WHERE p.user_id <> :requester_user_id
               AND (:exclude_count = 0 OR p.id <> ALL(CAST(:exclude_ids AS uuid[])))
-              AND p.user_id NOT IN (
-                  SELECT swiped_id
-                  FROM matching_schema.swipes
-                  WHERE swiper_id = :requester_user_id
-              )
+              AND (:swiped_count = 0 OR p.user_id <> ALL(CAST(:swiped_ids AS uuid[])))
               AND (
                   SELECT looking_for_gender FROM users_schema.profiles
                   WHERE user_id = :requester_user_id
@@ -118,6 +116,8 @@ async def build_feed_from_db(
             "limit": limit,
             "exclude_ids": list(exclude_profile_ids or []),
             "exclude_count": len(exclude_profile_ids or []),
+            "swiped_ids": swiped,
+            "swiped_count": len(swiped),
         },
     )
     return [dict(row._mapping) for row in rows]
