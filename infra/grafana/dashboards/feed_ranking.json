@@ -1,0 +1,96 @@
+{
+  "id": null,
+  "uid": "feed-ranking",
+  "title": "Feed & Ranking",
+  "tags": ["dating-bot"],
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Feed cache hit rate",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "rate(feed_cache_hits_total[1m]) / (rate(feed_cache_hits_total[1m]) + rate(feed_cache_misses_total[1m]))",
+          "legendFormat": "hit rate"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Feed requests (hits vs misses)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "rate(feed_cache_hits_total[1m])",
+          "legendFormat": "cache hits/s"
+        },
+        {
+          "expr": "rate(feed_cache_misses_total[1m])",
+          "legendFormat": "cache misses/s"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Feed p95 latency (s)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(feed_get_duration_seconds_bucket[1m]))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.50, rate(feed_get_duration_seconds_bucket[1m]))",
+          "legendFormat": "p50"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Rating recalculation p95 latency (s)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(rating_recalculation_duration_seconds_bucket[1m]))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.50, rate(rating_recalculation_duration_seconds_bucket[1m]))",
+          "legendFormat": "p50"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Notifications sent (rate/min)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 7 },
+      "targets": [
+        {
+          "expr": "sum(rate(notifications_sent_total[1m])) by (type) * 60",
+          "legendFormat": "{{type}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Swipe p95 latency (s)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 7 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(swipe_duration_seconds_bucket[1m]))",
+          "legendFormat": "p95 swipe"
+        }
+      ]
+    }
+  ]
+}

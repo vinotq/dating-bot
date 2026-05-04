@@ -6,8 +6,10 @@ class Settings(BaseSettings):
     user_service_url: str = "http://user_service:8000"
     ranking_service_url: str = "http://ranking_service:8000"
     matching_service_url: str = "http://matching_service:8000"
+    notification_service_url: str = "http://notification_service:8000"
     redis_dsn: str = "redis://redis:6379/0"
     rabbitmq_url: str = "amqp://guest:guest@rabbitmq:5672/"
+    bot_username: str = "ver47DatingBot"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

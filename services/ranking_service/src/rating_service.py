@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 import uuid
 
 from sqlalchemy import select, text
@@ -7,6 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.calculator import calc_behavioral, calc_combined, calc_primary
 from src.models import Rating, RatingHistory
+
+_avg_likes_cache: tuple[float, float] | None = None
+_AVG_LIKES_TTL = 60.0
 
 
 async def get_or_create_rating(db: AsyncSession, user_id: uuid.UUID) -> Rating:
@@ -19,8 +23,16 @@ async def get_or_create_rating(db: AsyncSession, user_id: uuid.UUID) -> Rating:
 
 
 async def _avg_likes(db: AsyncSession) -> float:
-    result = await db.scalar(text("SELECT AVG(total_likes_received) FROM ranking_schema.ratings"))
-    return float(result or 0)
+    global _avg_likes_cache
+    now = time.monotonic()
+    if _avg_likes_cache and (now - _avg_likes_cache[1]) < _AVG_LIKES_TTL:
+        return _avg_likes_cache[0]
+    result = await db.scalar(
+        text("SELECT AVG(total_likes_received) FROM ranking_schema.ratings")
+    )
+    val = float(result or 0)
+    _avg_likes_cache = (val, now)
+    return val
 
 
 async def recalculate(db: AsyncSession, user_id: uuid.UUID) -> Rating:
@@ -77,12 +89,14 @@ async def recalculate(db: AsyncSession, user_id: uuid.UUID) -> Rating:
         referral_count,
     )
 
-    db.add(RatingHistory(
-        user_id=user_id,
-        primary_score=rating.primary_score,
-        behavioral_score=rating.behavioral_score,
-        combined_score=rating.combined_score,
-    ))
+    db.add(
+        RatingHistory(
+            user_id=user_id,
+            primary_score=rating.primary_score,
+            behavioral_score=rating.behavioral_score,
+            combined_score=rating.combined_score,
+        )
+    )
 
     await db.commit()
     await db.refresh(rating)

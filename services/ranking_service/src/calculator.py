@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 def calc_primary(
     completeness_score: int,
     photo_count: int,
@@ -36,6 +37,7 @@ def calc_behavioral(
         + 0.15 * min(chat_rate, 1.0)
     )
     return round(min(100.0, max(0.0, score)), 2)
+
 
 def calc_combined(
     primary_score: float,

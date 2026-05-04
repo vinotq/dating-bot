@@ -9,17 +9,20 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from constants import GENDER_TO_API
+from constants import GENDER_TO_API, LOOKING_TO_API
 from dependencies import user_client
 from keyboards import (
     BTN_BACK,
+    BTN_CONFIRM,
     BTN_RESET,
     BTN_SKIP,
     BTN_START_SURVEY,
-    back_keyboard,
     back_skip_keyboard,
+    confirm_keyboard,
     gender_keyboard,
+    looking_for_keyboard,
     main_menu_keyboard,
+    registration_in_progress_keyboard,
     start_only_keyboard,
 )
 from profile_ui import send_profile_card
@@ -65,14 +68,24 @@ async def registration_name(message: Message, state: FSMContext) -> None:
         return
     await state.update_data(name=name)
     await state.set_state(RegistrationStates.waiting_age)
-    await _reg_answer(message, "Сколько тебе полных лет?", reply_markup=back_keyboard())
+    await _reg_answer(
+        message,
+        "<b>Шаг 2 из 8.</b> Сколько тебе полных лет?",
+        reply_markup=registration_in_progress_keyboard(),
+        parse_mode=ParseMode.HTML,
+    )
 
 
 @router.message(RegistrationStates.waiting_age)
 async def registration_age(message: Message, state: FSMContext) -> None:
     if message.text == BTN_BACK:
         await state.set_state(RegistrationStates.waiting_name)
-        await _reg_answer(message, "Как тебя зовут?", reply_markup=back_keyboard())
+        await _reg_answer(
+            message,
+            "<b>Шаг 1 из 8.</b> Как тебя зовут?",
+            reply_markup=registration_in_progress_keyboard(),
+            parse_mode=ParseMode.HTML,
+        )
         return
     if message.text == BTN_RESET:
         await _restart(message, state)
@@ -96,8 +109,9 @@ async def registration_age(message: Message, state: FSMContext) -> None:
     await state.set_state(RegistrationStates.waiting_gender)
     await _reg_answer(
         message,
-        "Твой пол — выбери из пунктов ниже",
+        "<b>Шаг 3 из 8.</b> Твой пол — выбери из пунктов ниже",
         reply_markup=gender_keyboard(),
+        parse_mode=ParseMode.HTML,
     )
 
 
@@ -105,7 +119,12 @@ async def registration_age(message: Message, state: FSMContext) -> None:
 async def registration_gender(message: Message, state: FSMContext) -> None:
     if message.text == BTN_BACK:
         await state.set_state(RegistrationStates.waiting_age)
-        await _reg_answer(message, "Сколько тебе полных лет?", reply_markup=back_keyboard())
+        await _reg_answer(
+            message,
+            "<b>Шаг 2 из 8.</b> Сколько тебе полных лет?",
+            reply_markup=registration_in_progress_keyboard(),
+            parse_mode=ParseMode.HTML,
+        )
         return
     if message.text == BTN_RESET:
         await _restart(message, state)
@@ -121,8 +140,9 @@ async def registration_gender(message: Message, state: FSMContext) -> None:
     await state.set_state(RegistrationStates.waiting_city)
     await _reg_answer(
         message,
-        "Откуда ты? Город напиши текстом",
-        reply_markup=back_keyboard(),
+        "<b>Шаг 4 из 8.</b> Откуда ты? Город напиши текстом",
+        reply_markup=registration_in_progress_keyboard(),
+        parse_mode=ParseMode.HTML,
     )
 
 
@@ -132,8 +152,9 @@ async def registration_city(message: Message, state: FSMContext) -> None:
         await state.set_state(RegistrationStates.waiting_gender)
         await _reg_answer(
             message,
-            "Твой пол — нажми кнопку ниже",
+            "<b>Шаг 3 из 8.</b> Твой пол — нажми кнопку ниже",
             reply_markup=gender_keyboard(),
+            parse_mode=ParseMode.HTML,
         )
         return
     if message.text == BTN_RESET:
@@ -150,8 +171,9 @@ async def registration_city(message: Message, state: FSMContext) -> None:
     await state.set_state(RegistrationStates.waiting_interests)
     await _reg_answer(
         message,
-        "Чем увлекаешься? Через запятую, хотя бы один пункт",
-        reply_markup=back_keyboard(),
+        "<b>Шаг 5 из 8.</b> Чем увлекаешься? Через запятую, хотя бы один пункт",
+        reply_markup=registration_in_progress_keyboard(),
+        parse_mode=ParseMode.HTML,
     )
 
 
@@ -161,8 +183,9 @@ async def registration_interests(message: Message, state: FSMContext) -> None:
         await state.set_state(RegistrationStates.waiting_city)
         await _reg_answer(
             message,
-            "Откуда ты? Город напиши текстом",
-            reply_markup=back_keyboard(),
+            "<b>Шаг 4 из 8.</b> Откуда ты? Город напиши текстом",
+            reply_markup=registration_in_progress_keyboard(),
+            parse_mode=ParseMode.HTML,
         )
         return
     if message.text == BTN_RESET:
@@ -178,10 +201,38 @@ async def registration_interests(message: Message, state: FSMContext) -> None:
         )
         return
     await state.update_data(interests=unique)
+    await state.set_state(RegistrationStates.waiting_looking_for)
+    await _reg_answer(
+        message,
+        "<b>Шаг 6 из 8.</b> Кого ищешь?",
+        reply_markup=looking_for_keyboard(),
+        parse_mode=ParseMode.HTML,
+    )
+
+
+@router.message(RegistrationStates.waiting_looking_for)
+async def registration_looking_for(message: Message, state: FSMContext) -> None:
+    if message.text == BTN_BACK:
+        await state.set_state(RegistrationStates.waiting_interests)
+        await _reg_answer(
+            message,
+            "<b>Шаг 5 из 8.</b> Чем увлекаешься? Через запятую, хотя бы один пункт",
+            reply_markup=registration_in_progress_keyboard(),
+            parse_mode=ParseMode.HTML,
+        )
+        return
+    if message.text == BTN_RESET:
+        await _restart(message, state)
+        return
+    raw = (message.text or "").strip().lower()
+    if raw not in LOOKING_TO_API:
+        await _reg_answer(message, "Выбери из пунктов: Мужчины, Женщины или Любой")
+        return
+    await state.update_data(looking_for_gender=LOOKING_TO_API[raw])
     await state.set_state(RegistrationStates.waiting_bio)
     await _reg_answer(
         message,
-        "Можешь написать о себе пару строк или нажми <i>Пропустить</i>",
+        "<b>Шаг 7 из 8.</b> Можешь написать о себе пару строк или нажми <i>Пропустить</i>",
         reply_markup=back_skip_keyboard(),
         parse_mode=ParseMode.HTML,
     )
@@ -193,7 +244,7 @@ async def registration_bio_skip(message: Message, state: FSMContext) -> None:
     await state.set_state(RegistrationStates.waiting_photo)
     await _reg_answer(
         message,
-        "Кинь фото для анкеты или нажми <i>Пропустить</i> — без фото тоже можно",
+        "<b>Шаг 8 из 8.</b> Кинь фото для анкеты или нажми <i>Пропустить</i> — без фото тоже можно",
         reply_markup=back_skip_keyboard(),
         parse_mode=ParseMode.HTML,
     )
@@ -202,11 +253,12 @@ async def registration_bio_skip(message: Message, state: FSMContext) -> None:
 @router.message(RegistrationStates.waiting_bio)
 async def registration_bio(message: Message, state: FSMContext) -> None:
     if message.text == BTN_BACK:
-        await state.set_state(RegistrationStates.waiting_interests)
+        await state.set_state(RegistrationStates.waiting_looking_for)
         await _reg_answer(
             message,
-            "Чем увлекаешься? Через запятую, хотя бы один пункт",
-            reply_markup=back_keyboard(),
+            "<b>Шаг 6 из 8.</b> Кого ищешь?",
+            reply_markup=looking_for_keyboard(),
+            parse_mode=ParseMode.HTML,
         )
         return
     if message.text == BTN_SKIP:
@@ -214,7 +266,7 @@ async def registration_bio(message: Message, state: FSMContext) -> None:
         await state.set_state(RegistrationStates.waiting_photo)
         await _reg_answer(
             message,
-            "Кинь фото для анкеты или нажми <i>Пропустить</i> — без фото тоже можно",
+            "<b>Шаг 8 из 8.</b> Кинь фото для анкеты или нажми <i>Пропустить</i> — без фото тоже можно",
             reply_markup=back_skip_keyboard(),
             parse_mode=ParseMode.HTML,
         )
@@ -233,15 +285,48 @@ async def registration_bio(message: Message, state: FSMContext) -> None:
     await state.set_state(RegistrationStates.waiting_photo)
     await _reg_answer(
         message,
-        "Кинь фото для анкеты или нажми <i>Пропустить</i> — без фото тоже можно",
+        "<b>Шаг 8 из 8.</b> Кинь фото для анкеты или нажми <i>Пропустить</i> — без фото тоже можно",
         reply_markup=back_skip_keyboard(),
         parse_mode=ParseMode.HTML,
     )
 
 
+async def _go_to_confirm(
+    message: Message, state: FSMContext, photo_content: Optional[bytes]
+) -> None:
+    from constants import GENDER_FROM_API, LOOKING_FROM_API
+
+    data = await state.get_data()
+    await state.update_data(
+        photo_content=list(photo_content) if photo_content else None
+    )
+    await state.set_state(RegistrationStates.waiting_confirm)
+    gender_raw = data.get("gender", "")
+    looking_raw = data.get("looking_for_gender", "any")
+    interests = data.get("interests") or []
+    gender_label = GENDER_FROM_API.get(gender_raw, gender_raw)
+    looking_label = LOOKING_FROM_API.get(looking_raw, looking_raw)
+    photo_label = "есть" if photo_content else "нет"
+    summary = (
+        "<b>Проверь перед сохранением:</b>\n\n"
+        f"<b>Имя:</b> {html.escape(data['name'])}\n"
+        f"<b>Возраст:</b> {data['age']}\n"
+        f"<b>Пол:</b> {html.escape(gender_label)}\n"
+        f"<b>Город:</b> {html.escape(data['city'])}\n"
+        f"<b>Ищет:</b> {html.escape(looking_label)}\n"
+        f"<b>Интересы:</b> {html.escape(', '.join(interests)) if interests else '—'}\n"
+        f"<b>О себе:</b> {html.escape(data['bio']) if data.get('bio') else '<i>не заполнено</i>'}\n"
+        f"<b>Фото:</b> {photo_label}\n\n"
+        "Всё верно?"
+    )
+    await _reg_answer(
+        message, summary, reply_markup=confirm_keyboard(), parse_mode=ParseMode.HTML
+    )
+
+
 @router.message(Command("skip"), RegistrationStates.waiting_photo)
 async def registration_photo_skip(message: Message, state: FSMContext) -> None:
-    await _finish_registration(message, state, None)
+    await _go_to_confirm(message, state, None)
 
 
 @router.message(RegistrationStates.waiting_photo, F.photo)
@@ -250,7 +335,7 @@ async def registration_photo(message: Message, state: FSMContext, bot: Bot) -> N
     file = await bot.get_file(largest.file_id)
     data = await bot.download_file(file.file_path)
     content = data.read()
-    await _finish_registration(message, state, content)
+    await _go_to_confirm(message, state, content)
 
 
 @router.message(RegistrationStates.waiting_photo)
@@ -259,13 +344,13 @@ async def registration_photo_invalid(message: Message, state: FSMContext) -> Non
         await state.set_state(RegistrationStates.waiting_bio)
         await _reg_answer(
             message,
-            "Можешь написать о себе пару строк или нажми <i>Пропустить</i>",
+            "<b>Шаг 7 из 8.</b> Можешь написать о себе пару строк или нажми <i>Пропустить</i>",
             reply_markup=back_skip_keyboard(),
             parse_mode=ParseMode.HTML,
         )
         return
     if message.text == BTN_SKIP:
-        await _finish_registration(message, state, None)
+        await _go_to_confirm(message, state, None)
         return
     if message.text == BTN_RESET:
         await _restart(message, state)
@@ -275,6 +360,25 @@ async def registration_photo_invalid(message: Message, state: FSMContext) -> Non
         "Нужна картинка или нажимай <i>Пропустить</i>",
         parse_mode=ParseMode.HTML,
     )
+
+
+@router.message(RegistrationStates.waiting_confirm)
+async def registration_confirm(message: Message, state: FSMContext) -> None:
+    if message.text == BTN_RESET:
+        await _restart(message, state)
+        return
+    if message.text != BTN_CONFIRM:
+        await _reg_answer(
+            message,
+            "Нажми <b>✅ Сохранить</b> или <b>Начать заново</b>",
+            reply_markup=confirm_keyboard(),
+            parse_mode=ParseMode.HTML,
+        )
+        return
+    data = await state.get_data()
+    raw_photo = data.get("photo_content")
+    photo_bytes: Optional[bytes] = bytes(raw_photo) if raw_photo else None
+    await _finish_registration(message, state, photo_bytes)
 
 
 def _profile_create_payload(data: dict) -> dict:
@@ -287,7 +391,7 @@ def _profile_create_payload(data: dict) -> dict:
         "gender": data["gender"],
         "city": data["city"],
         "bio": data.get("bio"),
-        "looking_for_gender": "any",
+        "looking_for_gender": data.get("looking_for_gender", "any"),
         "age_min": 14,
         "age_max": -1,
     }
@@ -329,7 +433,9 @@ async def _finish_registration(
             interest_ids.append(by_name[interest_name])
         await user_client.set_user_interests(user_id_str, interest_ids)
         if photo_content:
-            await user_client.upload_profile_photo(profile["id"], photo_content, "profile.jpg")
+            await user_client.upload_profile_photo(
+                profile["id"], photo_content, "profile.jpg"
+            )
         updated_profile = await user_client.get_profile_by_user(user_id_str)
     except httpx.HTTPStatusError as e:
         code = e.response.status_code
