@@ -2,26 +2,37 @@ from aiogram import F, Router
 from aiogram.enums import ParseMode
 from aiogram.filters import BaseFilter, Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+)
 
 from dependencies import user_client
+from handlers.common import allow_main_menu, send_busy_message
 from keyboards import (
     BTN_MAIN_PROFILE,
     BTN_START_SURVEY,
     back_keyboard,
     main_menu_keyboard,
-    start_only_keyboard,
 )
 from profile_ui import show_profile
+from states import RegistrationStates
 
 
 def _delete_confirm_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="Да, удалить", callback_data="delete_profile_confirm"),
-        InlineKeyboardButton(text="Нет", callback_data="delete_profile_cancel"),
-    ]])
-from states import RegistrationStates
-from handlers.common import allow_main_menu, send_busy_message
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="Да, удалить", callback_data="delete_profile_confirm"
+                ),
+                InlineKeyboardButton(text="Нет", callback_data="delete_profile_cancel"),
+            ]
+        ]
+    )
+
 
 router = Router()
 
@@ -49,7 +60,9 @@ async def start_command(message: Message, state: FSMContext) -> None:
 
     user = await user_client.get_user(tg_user.id)
     if user is None:
-        user = await user_client.create_user(tg_user.id, tg_user.username, referral_code=ref_code)
+        user = await user_client.create_user(
+            tg_user.id, tg_user.username, referral_code=ref_code
+        )
     elif ref_code:
         await message.answer(
             "<i>Реферальная ссылка не применена — ты уже зарегистрирован.</i>",

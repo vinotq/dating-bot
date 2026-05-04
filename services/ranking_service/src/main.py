@@ -23,7 +23,7 @@ from src.feed import (
     queue_length,
 )
 from src.models import Rating
-from src.rating_service import get_or_create_rating, recalculate
+from src.rating_service import recalculate
 from src.schemas import FeedCard, RatingOut
 
 logging.basicConfig(
@@ -54,10 +54,13 @@ async def _fetch_swiped_ids(user_id: uuid.UUID) -> list[str]:
         pass
     return []
 
+
 feed_cache_hits = Counter("feed_cache_hits_total", "Feed served from Redis cache")
 feed_cache_misses = Counter("feed_cache_misses_total", "Feed required DB query")
 feed_duration = Histogram("feed_get_duration_seconds", "Time to build feed response")
-rating_recalc_duration = Histogram("rating_recalculation_duration_seconds", "Rating recalc time")
+rating_recalc_duration = Histogram(
+    "rating_recalculation_duration_seconds", "Rating recalc time"
+)
 
 
 def get_redis() -> Redis:
@@ -112,10 +115,18 @@ async def get_feed(
             feed_cache_misses.inc()
             shown = await get_shown(redis, user_id)
             swiped = await _fetch_swiped_ids(user_id)
-            cards = await build_feed_from_db(db, user_id, limit=settings.feed_size, exclude_profile_ids=shown, exclude_user_ids=swiped)
+            cards = await build_feed_from_db(
+                db,
+                user_id,
+                limit=settings.feed_size,
+                exclude_profile_ids=shown,
+                exclude_user_ids=swiped,
+            )
             if not cards:
                 raise HTTPException(status_code=404, detail="Больше анкет нет")
-            await push_profile_ids(redis, user_id, [str(c["profile_id"]) for c in cards])
+            await push_profile_ids(
+                redis, user_id, [str(c["profile_id"]) for c in cards]
+            )
         else:
             feed_cache_hits.inc()
 
@@ -135,10 +146,18 @@ async def get_feed(
         if not card:
             shown = await get_shown(redis, user_id)
             swiped = await _fetch_swiped_ids(user_id)
-            cards = await build_feed_from_db(db, user_id, limit=settings.feed_size, exclude_profile_ids=shown, exclude_user_ids=swiped)
+            cards = await build_feed_from_db(
+                db,
+                user_id,
+                limit=settings.feed_size,
+                exclude_profile_ids=shown,
+                exclude_user_ids=swiped,
+            )
             if not cards:
                 raise HTTPException(status_code=404, detail="Больше анкет нет")
-            await push_profile_ids(redis, user_id, [str(c["profile_id"]) for c in cards])
+            await push_profile_ids(
+                redis, user_id, [str(c["profile_id"]) for c in cards]
+            )
             raw = await pop_next_profile_id(redis, user_id)
             if not raw:
                 raise HTTPException(status_code=404, detail="Больше анкет нет")
@@ -151,6 +170,7 @@ async def get_feed(
         remaining = await queue_length(redis, user_id)
         if remaining <= 1:
             from src.tasks import prefetch_feed
+
             prefetch_feed.delay(str(user_id))
 
         return FeedCard(
@@ -174,6 +194,7 @@ async def reset_feed(
     redis: Redis = Depends(get_redis),
 ) -> None:
     from src.feed import _feed_key, _shown_key
+
     await redis.delete(_feed_key(user_id), _shown_key(user_id))
 
 
@@ -186,6 +207,8 @@ async def get_rating(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> 
 
 
 @app.post("/api/v1/ratings/{user_id}/recalculate", response_model=RatingOut)
-async def force_recalculate(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> Rating:
+async def force_recalculate(
+    user_id: uuid.UUID, db: AsyncSession = Depends(get_db)
+) -> Rating:
     with rating_recalc_duration.time():
         return await recalculate(db, user_id)

@@ -23,12 +23,14 @@ async def connect() -> None:
 
 async def publish(routing_key: str, payload: dict) -> None:
     assert _exchange is not None
-    body = json.dumps({
-        "event_id": str(uuid.uuid4()),
-        "event_type": routing_key,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "payload": payload,
-    }).encode()
+    body = json.dumps(
+        {
+            "event_id": str(uuid.uuid4()),
+            "event_type": routing_key,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "payload": payload,
+        }
+    ).encode()
     await _exchange.publish(
         aio_pika.Message(body=body, delivery_mode=aio_pika.DeliveryMode.PERSISTENT),
         routing_key=routing_key,
@@ -42,12 +44,14 @@ async def publish_one(routing_key: str, payload: dict) -> None:
         exchange = await channel.declare_exchange(
             "dating.events", aio_pika.ExchangeType.TOPIC, durable=True
         )
-        body = json.dumps({
-            "event_id": str(uuid.uuid4()),
-            "event_type": routing_key,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "payload": payload,
-        }).encode()
+        body = json.dumps(
+            {
+                "event_id": str(uuid.uuid4()),
+                "event_type": routing_key,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "payload": payload,
+            }
+        ).encode()
         await exchange.publish(
             aio_pika.Message(body=body, delivery_mode=aio_pika.DeliveryMode.PERSISTENT),
             routing_key=routing_key,

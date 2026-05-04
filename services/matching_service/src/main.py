@@ -1,7 +1,7 @@
 import logging
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Response
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
@@ -51,13 +51,19 @@ async def metrics() -> Response:
 
 
 @app.post("/api/v1/swipes", response_model=SwipeResult)
-async def create_swipe(payload: SwipeCreate, db: AsyncSession = Depends(get_db)) -> SwipeResult:
+async def create_swipe(
+    payload: SwipeCreate, db: AsyncSession = Depends(get_db)
+) -> SwipeResult:
     if payload.swiper_id == payload.swiped_id:
         raise HTTPException(status_code=400, detail="Cannot swipe yourself")
 
     _t0 = time.monotonic()
     try:
-        swipe = Swipe(swiper_id=payload.swiper_id, swiped_id=payload.swiped_id, action=payload.action)
+        swipe = Swipe(
+            swiper_id=payload.swiper_id,
+            swiped_id=payload.swiped_id,
+            action=payload.action,
+        )
         try:
             db.add(swipe)
             await db.flush()
@@ -115,7 +121,9 @@ async def create_swipe(payload: SwipeCreate, db: AsyncSession = Depends(get_db))
 
 
 @app.get("/api/v1/swipes/{user_id}/swiped-ids")
-async def get_swiped_ids(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> list[str]:
+async def get_swiped_ids(
+    user_id: uuid.UUID, db: AsyncSession = Depends(get_db)
+) -> list[str]:
     result = await db.scalars(select(Swipe.swiped_id).where(Swipe.swiper_id == user_id))
     return [str(uid) for uid in result]
 
@@ -142,18 +150,24 @@ async def get_swipe_stats(
 
 
 @app.get("/api/v1/matches/{user_id}", response_model=list[MatchOut])
-async def get_matches(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> list[Match]:
+async def get_matches(
+    user_id: uuid.UUID, db: AsyncSession = Depends(get_db)
+) -> list[Match]:
     result = await db.scalars(
-        select(Match).where(
+        select(Match)
+        .where(
             ((Match.user1_id == user_id) | (Match.user2_id == user_id)),
-            Match.is_active == True,
-        ).order_by(Match.created_at.desc())
+            Match.is_active.is_(True),
+        )
+        .order_by(Match.created_at.desc())
     )
     return list(result)
 
 
 @app.post("/api/v1/messages", response_model=MessageOut)
-async def send_message(payload: MessageCreate, db: AsyncSession = Depends(get_db)) -> Message:
+async def send_message(
+    payload: MessageCreate, db: AsyncSession = Depends(get_db)
+) -> Message:
     match = await db.get(Match, payload.match_id)
     if not match or not match.is_active:
         raise HTTPException(status_code=404, detail="Match not found or inactive")
@@ -168,14 +182,18 @@ async def send_message(payload: MessageCreate, db: AsyncSession = Depends(get_db
         )
     )
 
-    msg = Message(match_id=payload.match_id, sender_id=payload.sender_id, body=payload.body)
+    msg = Message(
+        match_id=payload.match_id, sender_id=payload.sender_id, body=payload.body
+    )
     db.add(msg)
     await db.commit()
     await db.refresh(msg)
 
     messages_total.inc()
 
-    receiver_id = match.user2_id if payload.sender_id == match.user1_id else match.user1_id
+    receiver_id = (
+        match.user2_id if payload.sender_id == match.user1_id else match.user1_id
+    )
     await mq.publish(
         "message.sent",
         {

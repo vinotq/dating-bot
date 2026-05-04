@@ -16,15 +16,19 @@ async def run_migrations() -> None:
         print("create_all …")
         await conn.run_sync(Base.metadata.create_all)
         print("index swipes(swiped_id, created_at) …")
-        await conn.execute(text(
-            "CREATE INDEX IF NOT EXISTS ix_swipes_swiped_created "
-            "ON matching_schema.swipes (swiped_id, created_at DESC)"
-        ))
+        await conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS ix_swipes_swiped_created "
+                "ON matching_schema.swipes (swiped_id, created_at DESC)"
+            )
+        )
         print("index messages(match_id, created_at) …")
-        await conn.execute(text(
-            "CREATE INDEX IF NOT EXISTS ix_messages_match_created "
-            "ON matching_schema.messages (match_id, created_at DESC)"
-        ))
+        await conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS ix_messages_match_created "
+                "ON matching_schema.messages (match_id, created_at DESC)"
+            )
+        )
     print("Миграции применены.")
 
 

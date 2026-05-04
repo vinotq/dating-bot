@@ -5,11 +5,10 @@ import logging
 import uuid
 
 import aio_pika
-from sqlalchemy import select, text
+from sqlalchemy import text
 
 from src.config import settings
 from src.db import SessionLocal
-from src.models import Rating
 from src.rating_service import get_or_create_rating, recalculate
 
 logger = logging.getLogger(__name__)
@@ -23,7 +22,11 @@ async def _handle(routing_key: str, payload: dict) -> None:
                 await get_or_create_rating(db, user_id)
                 await db.commit()
 
-            elif routing_key in ("profile.created", "profile.updated", "photo.uploaded"):
+            elif routing_key in (
+                "profile.created",
+                "profile.updated",
+                "photo.uploaded",
+            ):
                 user_id = uuid.UUID(payload["user_id"])
                 await recalculate(db, user_id)
 

@@ -14,7 +14,9 @@ from states import EditStates
 router = Router()
 
 
-async def _edit_prompt(cb: CallbackQuery, text: str, state: FSMContext, next_state) -> None:
+async def _edit_prompt(
+    cb: CallbackQuery, text: str, state: FSMContext, next_state
+) -> None:
     await state.set_state(next_state)
     await cb.message.answer(
         text,
@@ -107,7 +109,9 @@ async def edit_age_input(message: Message, state: FSMContext) -> None:
         return
     age = int(text)
     if age < 14:
-        await message.answer("Сколько тебе лет? У нас можно регистрироваться только с 14 лет.")
+        await message.answer(
+            "Сколько тебе лет? У нас можно регистрироваться только с 14 лет."
+        )
         return
     await update_current_profile(message, {"age": age})
     await state.clear()
@@ -127,7 +131,9 @@ async def edit_city_input(message: Message, state: FSMContext) -> None:
 async def edit_bio_input(message: Message, state: FSMContext) -> None:
     text = (message.text or "").strip()
     if len(text) > 500:
-        await message.answer("Ничего себе ты много про себя написал, но этого многовато, укороти чуть-чуть")
+        await message.answer(
+            "Ничего себе ты много про себя написал, но этого многовато, укороти чуть-чуть"
+        )
         return
     await update_current_profile(message, {"bio": text})
     await state.clear()

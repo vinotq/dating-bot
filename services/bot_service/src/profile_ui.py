@@ -16,7 +16,9 @@ async def load_profile_photo_buffers(profile_id: str) -> list[bytes]:
     buffers: list[bytes] = []
     for p in items:
         try:
-            buffers.append(await user_client.fetch_photo_bytes(profile_id, str(p["id"])))
+            buffers.append(
+                await user_client.fetch_photo_bytes(profile_id, str(p["id"]))
+            )
         except httpx.HTTPError:
             continue
     return buffers
@@ -49,7 +51,9 @@ async def send_profile_content(message: Message, profile: dict) -> list[int]:
             part = BufferedInputFile(b, filename=f"p{i}.jpg")
             if i == 0:
                 media.append(
-                    InputMediaPhoto(media=part, caption=caption, parse_mode=ParseMode.HTML)
+                    InputMediaPhoto(
+                        media=part, caption=caption, parse_mode=ParseMode.HTML
+                    )
                 )
             else:
                 media.append(InputMediaPhoto(media=part))
@@ -76,12 +80,21 @@ async def send_profile_card(
 
 async def send_help(message: Message) -> None:
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Смотреть анкеты", callback_data="help:search"),
-         InlineKeyboardButton(text="Мой профиль", callback_data="help:profile")],
-        [InlineKeyboardButton(text="Мои мэтчи", callback_data="help:matches"),
-         InlineKeyboardButton(text="Настройки", callback_data="help:settings")],
-    ])
+
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="Смотреть анкеты", callback_data="help:search"
+                ),
+                InlineKeyboardButton(text="Мой профиль", callback_data="help:profile"),
+            ],
+            [
+                InlineKeyboardButton(text="Мои мэтчи", callback_data="help:matches"),
+                InlineKeyboardButton(text="Настройки", callback_data="help:settings"),
+            ],
+        ]
+    )
     await message.answer(
         "<b>Вот что умею</b>\n\n"
         "<b>Смотреть анкеты</b> — <i>лента с лайком и пропуском</i>\n"
@@ -99,9 +112,7 @@ async def show_profile(message: Message) -> None:
         return
     user = await user_client.get_user(tg_user.id)
     if user is None:
-        await message.answer(
-            "Сначала отправь /start — <i>так мы познакомимся</i>."
-        )
+        await message.answer("Сначала отправь /start — <i>так мы познакомимся</i>.")
         return
     profile = await user_client.get_profile_by_user(user["id"])
     if profile is None:

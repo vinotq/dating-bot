@@ -14,7 +14,9 @@ class NotificationClient:
         await self.client.aclose()
 
     async def get_settings(self, user_id: str) -> dict:
-        resp = await self.client.get(f"{self.base_url}/api/v1/notifications/{user_id}/settings")
+        resp = await self.client.get(
+            f"{self.base_url}/api/v1/notifications/{user_id}/settings"
+        )
         resp.raise_for_status()
         return resp.json()
 

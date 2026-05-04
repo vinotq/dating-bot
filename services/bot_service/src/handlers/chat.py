@@ -1,11 +1,15 @@
 import html
-import uuid
 
 import httpx
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+)
 
 from dependencies import matching_client, user_client, clear_unread
 from keyboards import BTN_CHAT_CLOSE, BTN_MAIN_INVITE, chat_keyboard, main_menu_keyboard
@@ -51,7 +55,9 @@ async def load_more_history(cb: CallbackQuery, state: FSMContext) -> None:
     history = _format_history(chunk, user_id, partner_name)
     buttons = [[InlineKeyboardButton(text="Закрыть чат", callback_data="chat:close")]]
     if new_offset > 0:
-        buttons.insert(0, [InlineKeyboardButton(text="⬆️ Загрузить ещё", callback_data="chat:more")])
+        buttons.insert(
+            0, [InlineKeyboardButton(text="⬆️ Загрузить ещё", callback_data="chat:more")]
+        )
     await cb.message.answer(
         f"<i>— более ранние сообщения —</i>\n\n{history}",
         parse_mode="HTML",
@@ -87,7 +93,11 @@ async def open_chat(cb: CallbackQuery, state: FSMContext) -> None:
     match = next((m for m in matches if str(m["id"]) == match_id), None)
     partner_name = "Партнёр"
     if match is not None:
-        partner_id = str(match["user2_id"]) if str(match["user1_id"]) == my_id else str(match["user1_id"])
+        partner_id = (
+            str(match["user2_id"])
+            if str(match["user1_id"]) == my_id
+            else str(match["user1_id"])
+        )
         try:
             profile = await user_client.get_profile_by_user(partner_id)
             if profile and profile.get("name"):
@@ -117,9 +127,15 @@ async def open_chat(cb: CallbackQuery, state: FSMContext) -> None:
     safe_partner = html.escape(partner_name)
 
     if offset > 0:
-        more_kb = InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(text="⬆️ Загрузить ещё", callback_data="chat:more")
-        ]])
+        more_kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="⬆️ Загрузить ещё", callback_data="chat:more"
+                    )
+                ]
+            ]
+        )
         await cb.message.answer(
             "<i>— подгрузить более ранние сообщения —</i>",
             parse_mode="HTML",
@@ -195,6 +211,7 @@ async def _send_invite(message: Message) -> None:
         return
 
     from config import settings
+
     bot_name = settings.bot_username or "dating_bot"
     link = f"https://t.me/{bot_name}?start=ref_{code}"
     await message.answer(

@@ -37,18 +37,23 @@ def send_notification(self, user_id: str, notif_type: str, payload: dict) -> Non
                 if notif_type == "message" and not settings_row.messages_enabled:
                     return
 
-            notif = Notification(user_id=uid, type=notif_type, payload=payload, status="pending")
+            notif = Notification(
+                user_id=uid, type=notif_type, payload=payload, status="pending"
+            )
             db.add(notif)
             await db.commit()
             await db.refresh(notif)
 
             try:
-                await mq.publish_one("notify.outbound", {
-                    "user_id": user_id,
-                    "type": notif_type,
-                    "payload": payload,
-                    "notification_id": str(notif.id),
-                })
+                await mq.publish_one(
+                    "notify.outbound",
+                    {
+                        "user_id": user_id,
+                        "type": notif_type,
+                        "payload": payload,
+                        "notification_id": str(notif.id),
+                    },
+                )
                 notif.status = "sent"
             except Exception:
                 notif.status = "failed"
@@ -59,7 +64,9 @@ def send_notification(self, user_id: str, notif_type: str, payload: dict) -> Non
     try:
         _run(_inner())
     except Exception as exc:
-        logger.exception("send_notification failed: user_id=%s type=%s", user_id, notif_type)
+        logger.exception(
+            "send_notification failed: user_id=%s type=%s", user_id, notif_type
+        )
         raise self.retry(exc=exc, countdown=30)
 
 
@@ -77,9 +84,13 @@ def daily_digest() -> None:
         since_iso = since.isoformat()
 
         async with SessionLocal() as db:
-            enabled = (await db.scalars(
-                select(NotificationSettings).where(NotificationSettings.digest_enabled == True)
-            )).all()
+            enabled = (
+                await db.scalars(
+                    select(NotificationSettings).where(
+                        NotificationSettings.digest_enabled.is_(True)
+                    )
+                )
+            ).all()
 
             async with httpx.AsyncClient(timeout=10.0) as http:
                 for s in enabled:
@@ -92,7 +103,9 @@ def daily_digest() -> None:
                         resp.raise_for_status()
                         stats = resp.json()
                     except Exception:
-                        logger.exception("digest: failed to fetch stats for user_id=%s", uid)
+                        logger.exception(
+                            "digest: failed to fetch stats for user_id=%s", uid
+                        )
                         continue
 
                     new_likes = int(stats.get("new_likes", 0))
@@ -101,10 +114,16 @@ def daily_digest() -> None:
                     if new_likes == 0 and new_matches == 0:
                         continue
 
-                    await mq.publish_one("notify.outbound", {
-                        "user_id": uid,
-                        "type": "digest",
-                        "payload": {"new_likes": new_likes, "new_matches": new_matches},
-                    })
+                    await mq.publish_one(
+                        "notify.outbound",
+                        {
+                            "user_id": uid,
+                            "type": "digest",
+                            "payload": {
+                                "new_likes": new_likes,
+                                "new_matches": new_matches,
+                            },
+                        },
+                    )
 
     _run(_inner())

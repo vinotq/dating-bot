@@ -41,7 +41,9 @@ async def get_shown(redis: Redis, user_id: uuid.UUID) -> set[str]:
     return {v.decode() if isinstance(v, bytes) else v for v in raw}
 
 
-async def push_profile_ids(redis: Redis, user_id: uuid.UUID, profile_ids: list[str]) -> None:
+async def push_profile_ids(
+    redis: Redis, user_id: uuid.UUID, profile_ids: list[str]
+) -> None:
     if not profile_ids:
         return
     key = _feed_key(user_id)

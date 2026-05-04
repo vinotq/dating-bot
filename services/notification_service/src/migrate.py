@@ -12,10 +12,12 @@ async def run_migrations() -> None:
     async with engine.begin() as conn:
         await conn.execute(text("CREATE SCHEMA IF NOT EXISTS notification_schema"))
         await conn.run_sync(Base.metadata.create_all)
-        await conn.execute(text(
-            "CREATE INDEX IF NOT EXISTS ix_notifications_user_id "
-            "ON notification_schema.notifications (user_id, created_at DESC)"
-        ))
+        await conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS ix_notifications_user_id "
+                "ON notification_schema.notifications (user_id, created_at DESC)"
+            )
+        )
     print("Миграции применены.")
 
 

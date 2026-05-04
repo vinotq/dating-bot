@@ -35,14 +35,20 @@ async def help_nav(cb: CallbackQuery, state: FSMContext) -> None:
     if action == "search":
         from handlers.search import _start_search
         from aiogram import Bot
+
         bot: Bot = cb.bot  # type: ignore[assignment]
         await _start_search(cb.message, bot)
     elif action == "profile":
         from profile_ui import show_profile
+
         await show_profile(cb.message)
     elif action == "matches":
         from handlers.search import _show_matches
+
         await _show_matches(cb.message)
     elif action == "settings":
         from handlers.settings import start_settings_wizard
-        await start_settings_wizard(cb.message, state, telegram_id=cb.from_user.id if cb.from_user else None)
+
+        await start_settings_wizard(
+            cb.message, state, telegram_id=cb.from_user.id if cb.from_user else None
+        )

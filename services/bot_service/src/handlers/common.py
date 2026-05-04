@@ -51,8 +51,7 @@ async def require_profile_for_inline_edit(cb: CallbackQuery) -> dict | None:
     profile = await user_client.get_profile_by_user(user["id"])
     if profile is None:
         await cb.message.answer(
-            "<b>Анкеты уже нет.</b> <i>"
-            "Отправь /start и собери анкету заново.</i>",
+            "<b>Анкеты уже нет.</b> <i>Отправь /start и собери анкету заново.</i>",
             reply_markup=main_menu_keyboard(),
         )
         await cb.answer()

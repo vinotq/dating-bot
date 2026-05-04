@@ -20,15 +20,17 @@ def _run(coro):
 @celery.task(name="src.tasks.recalculate_all_ratings", bind=True, max_retries=3)
 def recalculate_all_ratings(self):
     async def _inner():
-        from sqlalchemy import select, text
+        from sqlalchemy import select
         from src.db import SessionLocal
         from src.models import Rating
         from src.rating_service import recalculate
 
         async with SessionLocal() as db:
-            user_ids = (await db.scalars(
-                select(Rating.user_id).order_by(Rating.updated_at.asc())
-            )).all()
+            user_ids = (
+                await db.scalars(
+                    select(Rating.user_id).order_by(Rating.updated_at.asc())
+                )
+            ).all()
 
         sem = asyncio.Semaphore(10)
 
@@ -42,7 +44,7 @@ def recalculate_all_ratings(self):
 
         batch = 500
         for i in range(0, len(user_ids), batch):
-            chunk = user_ids[i:i + batch]
+            chunk = user_ids[i : i + batch]
             await asyncio.gather(*[_one(uid) for uid in chunk])
 
     try:
@@ -91,9 +93,17 @@ def prefetch_feed(self, user_id: str):
 
             async with SessionLocal() as db:
                 shown = await get_shown(redis, uid)
-                cards = await build_feed_from_db(db, uid, limit=settings.feed_size, exclude_profile_ids=shown, exclude_user_ids=swiped)
+                cards = await build_feed_from_db(
+                    db,
+                    uid,
+                    limit=settings.feed_size,
+                    exclude_profile_ids=shown,
+                    exclude_user_ids=swiped,
+                )
                 if cards:
-                    await push_profile_ids(redis, uid, [str(c["profile_id"]) for c in cards])
+                    await push_profile_ids(
+                        redis, uid, [str(c["profile_id"]) for c in cards]
+                    )
         finally:
             await redis.aclose()
 
