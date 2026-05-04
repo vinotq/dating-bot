@@ -49,8 +49,6 @@ jobs:
         service: [user_service, matching_service, ranking_service, notification_service, bot_service]
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
