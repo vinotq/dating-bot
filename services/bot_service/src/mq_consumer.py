@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 async def _get_telegram_id(user_uuid: str) -> int | None:
     from dependencies import user_client
+
     try:
         resp = await user_client.client.get(
             f"{user_client.base_url}/api/v1/users/by-uuid/{user_uuid}"
@@ -98,10 +99,14 @@ async def _notify_outbound(bot: Bot, payload: dict) -> None:
     try:
         await bot.send_message(chat_id=tg_id, text=text, parse_mode="HTML")
     except Exception:
-        logger.exception("notify_outbound send error: user=%s type=%s", user_uuid, notif_type)
+        logger.exception(
+            "notify_outbound send error: user=%s type=%s", user_uuid, notif_type
+        )
 
 
-async def _deliver_message(bot: Bot, storage: RedisStorage, bot_id: int, payload: dict) -> None:
+async def _deliver_message(
+    bot: Bot, storage: RedisStorage, bot_id: int, payload: dict
+) -> None:
     from aiogram.fsm.context import FSMContext
     from aiogram.fsm.storage.base import StorageKey
     from states import ChatState
@@ -123,8 +128,11 @@ async def _deliver_message(bot: Bot, storage: RedisStorage, bot_id: int, payload
         state = await ctx.get_state()
         data = await ctx.get_data()
 
-        if state == ChatState.active.state and str(data.get("match_id")) == str(match_id):
+        if state == ChatState.active.state and str(data.get("match_id")) == str(
+            match_id
+        ):
             import html as _html
+
             partner_name = _html.escape(data.get("partner_name") or "Партнёр")
             await bot.send_message(
                 chat_id=tg_id,
@@ -133,6 +141,7 @@ async def _deliver_message(bot: Bot, storage: RedisStorage, bot_id: int, payload
             )
         else:
             from dependencies import mark_unread
+
             await mark_unread(str(receiver_uuid), str(match_id))
             await bot.send_message(
                 chat_id=tg_id,

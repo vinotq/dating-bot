@@ -6,7 +6,12 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from dependencies import user_client
-from keyboards import BTN_BACK, back_keyboard, main_menu_keyboard, manage_photos_inline_keyboard
+from keyboards import (
+    BTN_BACK,
+    back_keyboard,
+    main_menu_keyboard,
+    manage_photos_inline_keyboard,
+)
 from profile_ui import send_profile_card, sorted_profile_photos
 from states import EditStates
 from handlers.common import require_profile_for_inline_edit
@@ -16,10 +21,7 @@ router = Router()
 
 def photo_manager_panel_text(photo_count: int) -> str:
     if photo_count == 0:
-        return (
-            "<b>Фото в анкете</b>\n"
-            "Пока пусто — в меню профиля есть «Добавить фото»."
-        )
+        return "<b>Фото в анкете</b>\nПока пусто — в меню профиля есть «Добавить фото»."
     return (
         "<b>Фото в анкете</b> (в карточке сверху вниз)\n"
         "У каждого номера: <b>↑</b> выше, <b>↓</b> ниже, <b>x</b> удалить.\n"
@@ -124,7 +126,9 @@ async def manage_photos_actions(cb: CallbackQuery, state: FSMContext) -> None:
         await cb.answer("Не вышло, попробуй ещё раз", show_alert=True)
         return
     try:
-        await refresh_photo_manager_panel(cb.bot, cb.message.chat.id, panel_mid, profile_id)
+        await refresh_photo_manager_panel(
+            cb.bot, cb.message.chat.id, panel_mid, profile_id
+        )
     except TelegramBadRequest:
         pass
 
@@ -163,7 +167,9 @@ async def edit_photo(cb: CallbackQuery, state: FSMContext) -> None:
 
 
 @router.message(EditStates.waiting_profile_photo, F.photo)
-async def edit_profile_photo_save(message: Message, state: FSMContext, bot: Bot) -> None:
+async def edit_profile_photo_save(
+    message: Message, state: FSMContext, bot: Bot
+) -> None:
     data = await state.get_data()
     profile_id = data.get("photo_edit_profile_id")
     user_id = data.get("photo_edit_user_id")

@@ -68,14 +68,24 @@ async def registration_name(message: Message, state: FSMContext) -> None:
         return
     await state.update_data(name=name)
     await state.set_state(RegistrationStates.waiting_age)
-    await _reg_answer(message, "<b>Шаг 2 из 8.</b> Сколько тебе полных лет?", reply_markup=registration_in_progress_keyboard(), parse_mode=ParseMode.HTML)
+    await _reg_answer(
+        message,
+        "<b>Шаг 2 из 8.</b> Сколько тебе полных лет?",
+        reply_markup=registration_in_progress_keyboard(),
+        parse_mode=ParseMode.HTML,
+    )
 
 
 @router.message(RegistrationStates.waiting_age)
 async def registration_age(message: Message, state: FSMContext) -> None:
     if message.text == BTN_BACK:
         await state.set_state(RegistrationStates.waiting_name)
-        await _reg_answer(message, "<b>Шаг 1 из 8.</b> Как тебя зовут?", reply_markup=registration_in_progress_keyboard(), parse_mode=ParseMode.HTML)
+        await _reg_answer(
+            message,
+            "<b>Шаг 1 из 8.</b> Как тебя зовут?",
+            reply_markup=registration_in_progress_keyboard(),
+            parse_mode=ParseMode.HTML,
+        )
         return
     if message.text == BTN_RESET:
         await _restart(message, state)
@@ -109,7 +119,12 @@ async def registration_age(message: Message, state: FSMContext) -> None:
 async def registration_gender(message: Message, state: FSMContext) -> None:
     if message.text == BTN_BACK:
         await state.set_state(RegistrationStates.waiting_age)
-        await _reg_answer(message, "<b>Шаг 2 из 8.</b> Сколько тебе полных лет?", reply_markup=registration_in_progress_keyboard(), parse_mode=ParseMode.HTML)
+        await _reg_answer(
+            message,
+            "<b>Шаг 2 из 8.</b> Сколько тебе полных лет?",
+            reply_markup=registration_in_progress_keyboard(),
+            parse_mode=ParseMode.HTML,
+        )
         return
     if message.text == BTN_RESET:
         await _restart(message, state)
@@ -276,15 +291,19 @@ async def registration_bio(message: Message, state: FSMContext) -> None:
     )
 
 
-async def _go_to_confirm(message: Message, state: FSMContext, photo_content: Optional[bytes]) -> None:
+async def _go_to_confirm(
+    message: Message, state: FSMContext, photo_content: Optional[bytes]
+) -> None:
     from constants import GENDER_FROM_API, LOOKING_FROM_API
+
     data = await state.get_data()
-    await state.update_data(photo_content=list(photo_content) if photo_content else None)
+    await state.update_data(
+        photo_content=list(photo_content) if photo_content else None
+    )
     await state.set_state(RegistrationStates.waiting_confirm)
     gender_raw = data.get("gender", "")
     looking_raw = data.get("looking_for_gender", "any")
     interests = data.get("interests") or []
-    bio = data.get("bio") or "<i>не заполнено</i>"
     gender_label = GENDER_FROM_API.get(gender_raw, gender_raw)
     looking_label = LOOKING_FROM_API.get(looking_raw, looking_raw)
     photo_label = "есть" if photo_content else "нет"
@@ -300,7 +319,9 @@ async def _go_to_confirm(message: Message, state: FSMContext, photo_content: Opt
         f"<b>Фото:</b> {photo_label}\n\n"
         "Всё верно?"
     )
-    await _reg_answer(message, summary, reply_markup=confirm_keyboard(), parse_mode=ParseMode.HTML)
+    await _reg_answer(
+        message, summary, reply_markup=confirm_keyboard(), parse_mode=ParseMode.HTML
+    )
 
 
 @router.message(Command("skip"), RegistrationStates.waiting_photo)
@@ -412,7 +433,9 @@ async def _finish_registration(
             interest_ids.append(by_name[interest_name])
         await user_client.set_user_interests(user_id_str, interest_ids)
         if photo_content:
-            await user_client.upload_profile_photo(profile["id"], photo_content, "profile.jpg")
+            await user_client.upload_profile_photo(
+                profile["id"], photo_content, "profile.jpg"
+            )
         updated_profile = await user_client.get_profile_by_user(user_id_str)
     except httpx.HTTPStatusError as e:
         code = e.response.status_code

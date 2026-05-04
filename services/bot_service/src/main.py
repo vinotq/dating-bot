@@ -10,11 +10,18 @@ from prometheus_client import Counter, start_http_server
 from redis.asyncio import Redis
 
 from config import settings
-from dependencies import matching_client, notification_client, ranking_client, user_client
+from dependencies import (
+    matching_client,
+    notification_client,
+    ranking_client,
+    user_client,
+)
 from handlers import router
 from mq_consumer import start_match_consumer
 
-messages_sent_total = Counter("bot_messages_sent_total", "Total Telegram messages sent", ["type"])
+messages_sent_total = Counter(
+    "bot_messages_sent_total", "Total Telegram messages sent", ["type"]
+)
 
 
 logging.basicConfig(

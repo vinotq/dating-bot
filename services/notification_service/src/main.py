@@ -4,7 +4,7 @@ import asyncio
 import logging
 import uuid
 
-from fastapi import Depends, FastAPI, HTTPException, Response
+from fastapi import Depends, FastAPI, Response
 from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
 from starlette_prometheus import PrometheusMiddleware
 from sqlalchemy import select
@@ -22,7 +22,9 @@ logging.basicConfig(
 app = FastAPI(title="Notification Service", version="0.1.0")
 app.add_middleware(PrometheusMiddleware)
 
-notifications_sent_total = Counter("notifications_sent_total", "Total notifications sent", ["type"])
+notifications_sent_total = Counter(
+    "notifications_sent_total", "Total notifications sent", ["type"]
+)
 
 
 @app.on_event("startup")
@@ -49,7 +51,9 @@ async def metrics() -> Response:
 
 @app.get("/api/v1/notifications/{user_id}/settings")
 async def get_settings(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> dict:
-    row = await db.scalar(select(NotificationSettings).where(NotificationSettings.user_id == user_id))
+    row = await db.scalar(
+        select(NotificationSettings).where(NotificationSettings.user_id == user_id)
+    )
     if not row:
         return {
             "user_id": str(user_id),
@@ -73,7 +77,9 @@ async def update_settings(
     digest_enabled: bool = True,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    row = await db.scalar(select(NotificationSettings).where(NotificationSettings.user_id == user_id))
+    row = await db.scalar(
+        select(NotificationSettings).where(NotificationSettings.user_id == user_id)
+    )
     if not row:
         row = NotificationSettings(user_id=user_id)
         db.add(row)
@@ -86,4 +92,5 @@ async def update_settings(
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("src.main:app", host="0.0.0.0", port=8000)

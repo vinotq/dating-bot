@@ -9,7 +9,12 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import BufferedInputFile, CallbackQuery, InputMediaPhoto, Message
 
 from constants import GENDER_FROM_API, LOOKING_FROM_API
-from dependencies import matching_client, ranking_client, user_client, get_unread_match_ids
+from dependencies import (
+    matching_client,
+    ranking_client,
+    user_client,
+    get_unread_match_ids,
+)
 from keyboards import (
     BTN_MAIN_SEARCH,
     BTN_MAIN_MATCHES,
@@ -31,11 +36,11 @@ def _search_card_text(card: dict) -> str:
     looking_raw = card.get("looking_for_gender", "")
     gender = html.escape(GENDER_FROM_API.get(gender_raw, gender_raw))
     looking = html.escape(LOOKING_FROM_API.get(looking_raw, looking_raw))
-    score = float(card.get("combined_score") or 0)
     raw_interests = card.get("interests") or []
     interests_line = (
         "<b>Интересы:</b> " + html.escape(", ".join(raw_interests))
-        if raw_interests else ""
+        if raw_interests
+        else ""
     )
     parts = [
         f"<b>{name}</b> · {card['age']} · {city}",
@@ -49,7 +54,9 @@ def _search_card_text(card: dict) -> str:
     return "\n".join(parts)[:1020]
 
 
-async def _show_card(message: Message, bot: Bot, user_id: str, *, try_edit: bool = False) -> bool:
+async def _show_card(
+    message: Message, bot: Bot, user_id: str, *, try_edit: bool = False
+) -> bool:
     try:
         card = await ranking_client.get_feed(user_id)
     except httpx.HTTPError:
@@ -60,9 +67,16 @@ async def _show_card(message: Message, bot: Bot, user_id: str, *, try_edit: bool
         return False
     if card is None:
         from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-        retry_kb = InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(text="🔄 Проверить ещё раз", callback_data="search_retry")
-        ]])
+
+        retry_kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="🔄 Проверить ещё раз", callback_data="search_retry"
+                    )
+                ]
+            ]
+        )
         await message.answer(
             "Пока новых анкет нет.\n\nМы сообщим, когда кто-то появится. Или проверь сам чуть позже.",
             reply_markup=retry_kb,
@@ -76,7 +90,9 @@ async def _show_card(message: Message, bot: Bot, user_id: str, *, try_edit: bool
     photo_id = card.get("primary_photo_id")
     if photo_id:
         try:
-            photo_bytes = await user_client.fetch_photo_bytes(str(card["profile_id"]), str(photo_id))
+            photo_bytes = await user_client.fetch_photo_bytes(
+                str(card["profile_id"]), str(photo_id)
+            )
             photo_file = BufferedInputFile(photo_bytes, filename="photo.jpg")
             if try_edit:
                 try:
@@ -105,7 +121,9 @@ async def _show_card(message: Message, bot: Bot, user_id: str, *, try_edit: bool
     full_text = no_photo_prefix + card_text
     if try_edit:
         try:
-            await message.edit_text(full_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            await message.edit_text(
+                full_text, parse_mode=ParseMode.HTML, reply_markup=keyboard
+            )
             return True
         except Exception:
             pass
@@ -155,7 +173,7 @@ async def handle_swipe(cb: CallbackQuery, bot: Bot) -> None:
         await cb.answer()
         return
 
-    action = parts[1]          # like | skip
+    action = parts[1]  # like | skip
     swiped_user_id = parts[2]  # UUID
 
     user = await user_client.get_user(cb.from_user.id)
@@ -174,17 +192,26 @@ async def handle_swipe(cb: CallbackQuery, bot: Bot) -> None:
         await cb.answer("Ошибка — попробуй ещё раз")
         return
 
-    await cb.answer("❤️ Мэтч!" if result.get("is_match") else ("❤️" if action == "like" else "👎"))
+    await cb.answer(
+        "❤️ Мэтч!" if result.get("is_match") else ("❤️" if action == "like" else "👎")
+    )
     await cb.message.edit_reply_markup(reply_markup=None)
 
     if result.get("is_match"):
         from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
         await cb.message.answer(
             "<b>Это мэтч!</b> Можешь написать прямо сейчас.",
             parse_mode=ParseMode.HTML,
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="💞 Открыть мэтчи", callback_data="open_matches")
-            ]]),
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text="💞 Открыть мэтчи", callback_data="open_matches"
+                        )
+                    ]
+                ]
+            ),
         )
 
     # показываем следующую анкету
@@ -231,7 +258,9 @@ async def _show_matches(message: Message, tg_user_id: int | None = None) -> None
         return
 
     my_id = str(user["id"])
-    sorted_matches = sorted(matches, key=lambda m: m.get("created_at") or "", reverse=True)
+    sorted_matches = sorted(
+        matches, key=lambda m: m.get("created_at") or "", reverse=True
+    )
 
     async def _fetch_profile(partner_id: str):
         try:
@@ -253,7 +282,9 @@ async def _show_matches(message: Message, tg_user_id: int | None = None) -> None
         if profile is None:
             buttons.append((f"{badge}анкета недоступна", partner_id, match_id))
             continue
-        gender_icon = {"male": "♂", "female": "♀", "other": "·"}.get(profile.get("gender", ""), "·")
+        gender_icon = {"male": "♂", "female": "♀", "other": "·"}.get(
+            profile.get("gender", ""), "·"
+        )
         name = profile.get("name") or "—"
         age = profile.get("age") or "—"
         city = profile.get("city") or "—"
@@ -314,13 +345,19 @@ async def open_match_chat(cb: CallbackQuery, state: FSMContext) -> None:
     except httpx.HTTPError:
         matches = []
 
-    match = next((m for m in matches if str(m["id"]).replace("-", "") == match_hex), None)
+    match = next(
+        (m for m in matches if str(m["id"]).replace("-", "") == match_hex), None
+    )
     if match is None:
         await cb.answer("Мэтч не найден", show_alert=True)
         return
 
     match_id = str(match["id"])
-    partner_id = str(match["user2_id"]) if str(match["user1_id"]) == my_id else str(match["user1_id"])
+    partner_id = (
+        str(match["user2_id"])
+        if str(match["user1_id"]) == my_id
+        else str(match["user1_id"])
+    )
 
     try:
         profile = await user_client.get_profile_by_user(partner_id)
@@ -334,9 +371,16 @@ async def open_match_chat(cb: CallbackQuery, state: FSMContext) -> None:
     name = html.escape(profile.get("name") or "—")
 
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f"💬 Написать {name}", callback_data=f"chat:open:{match_id}")]
-    ])
+
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=f"💬 Написать {name}", callback_data=f"chat:open:{match_id}"
+                )
+            ]
+        ]
+    )
     await cb.message.answer(
         f"<b>{name}</b> · {profile.get('age')} · {html.escape(profile.get('city') or '')}\n\n"
         f"{html.escape((profile.get('bio') or '').strip()) or '<i>без описания</i>'}",

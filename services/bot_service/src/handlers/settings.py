@@ -1,12 +1,22 @@
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+)
 
 from constants import LOOKING_FROM_API, LOOKING_TO_API
 from dependencies import notification_client, ranking_client, user_client
 from formatters import format_search_age_range, parse_settings_age_max
-from keyboards import BTN_BACK, back_keyboard, looking_for_with_back_keyboard, main_menu_keyboard
+from keyboards import (
+    BTN_BACK,
+    back_keyboard,
+    looking_for_with_back_keyboard,
+    main_menu_keyboard,
+)
 from states import EditStates
 
 router = Router()
@@ -60,7 +70,9 @@ async def settings_gender_input(message: Message, state: FSMContext) -> None:
         return
     await state.update_data(settings_looking_for_gender=LOOKING_TO_API[looking_for_raw])
     await state.set_state(EditStates.waiting_settings_age_min)
-    await message.answer("С какого возраста показывать людей?", reply_markup=back_keyboard())
+    await message.answer(
+        "С какого возраста показывать людей?", reply_markup=back_keyboard()
+    )
 
 
 @router.message(EditStates.waiting_settings_age_min)
@@ -94,11 +106,15 @@ async def settings_age_min_input(message: Message, state: FSMContext) -> None:
 async def settings_age_max_input(message: Message, state: FSMContext) -> None:
     if message.text == BTN_BACK:
         await state.set_state(EditStates.waiting_settings_age_min)
-        await message.answer("С какого возраста показывать?", reply_markup=back_keyboard())
+        await message.answer(
+            "С какого возраста показывать?", reply_markup=back_keyboard()
+        )
         return
     age_max = parse_settings_age_max(message.text or "")
     if age_max is None:
-        await message.answer("Нужно число (от 14 и выше) или <b>без лимита</b>", parse_mode="HTML")
+        await message.answer(
+            "Нужно число (от 14 и выше) или <b>без лимита</b>", parse_mode="HTML"
+        )
         return
     data = await state.get_data()
     age_min = data.get("settings_age_min")
@@ -106,10 +122,14 @@ async def settings_age_max_input(message: Message, state: FSMContext) -> None:
         await message.answer("<i>Что-то пошло не так — начни заново: /settings</i>")
         return
     if age_max < 14:
-        await message.answer("Либо не меньше 14, либо <b>без лимита</b>", parse_mode="HTML")
+        await message.answer(
+            "Либо не меньше 14, либо <b>без лимита</b>", parse_mode="HTML"
+        )
         return
     if age_min > age_max:
-        await message.answer("<i>Верхняя граница не может быть меньше нижней, поправь</i>")
+        await message.answer(
+            "<i>Верхняя граница не может быть меньше нижней, поправь</i>"
+        )
         return
     user_id = data.get("user_id")
     looking_for_gender = data.get("settings_looking_for_gender")
@@ -117,7 +137,9 @@ async def settings_age_max_input(message: Message, state: FSMContext) -> None:
         await state.clear()
         await message.answer("<i>Что-то пошло не так — начни заново: /settings</i>")
         return
-    prefs = await user_client.update_preferences(user_id, looking_for_gender, age_min, age_max)
+    prefs = await user_client.update_preferences(
+        user_id, looking_for_gender, age_min, age_max
+    )
     await state.clear()
     try:
         await ranking_client.reset_feed(user_id)
@@ -130,16 +152,20 @@ async def settings_age_max_input(message: Message, state: FSMContext) -> None:
     )
 
 
-def _notif_keyboard(matches: bool, messages: bool, digest: bool) -> InlineKeyboardMarkup:
+def _notif_keyboard(
+    matches: bool, messages: bool, digest: bool
+) -> InlineKeyboardMarkup:
     def _toggle(label: str, enabled: bool, cb: str) -> InlineKeyboardButton:
         icon = "✅" if enabled else "❌"
         return InlineKeyboardButton(text=f"{icon} {label}", callback_data=cb)
 
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [_toggle("Мэтчи", matches, "notif:toggle:matches")],
-        [_toggle("Сообщения", messages, "notif:toggle:messages")],
-        [_toggle("Дайджест", digest, "notif:toggle:digest")],
-    ])
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [_toggle("Мэтчи", matches, "notif:toggle:matches")],
+            [_toggle("Сообщения", messages, "notif:toggle:messages")],
+            [_toggle("Дайджест", digest, "notif:toggle:digest")],
+        ]
+    )
 
 
 async def _show_notif_settings(message: Message, user_id: str) -> None:
@@ -208,6 +234,8 @@ async def notif_toggle(cb: CallbackQuery) -> None:
         return
 
     await cb.message.edit_reply_markup(
-        reply_markup=_notif_keyboard(toggled["matches"], toggled["messages"], toggled["digest"])
+        reply_markup=_notif_keyboard(
+            toggled["matches"], toggled["messages"], toggled["digest"]
+        )
     )
     await cb.answer("Сохранено")

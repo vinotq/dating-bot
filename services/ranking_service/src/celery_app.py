@@ -3,7 +3,9 @@ from src.config import settings
 
 celery = Celery(
     "ranking",
-    broker=settings.rabbitmq_url.replace("amqp://", "amqp://").replace("amqps://", "amqps://"),
+    broker=settings.rabbitmq_url.replace("amqp://", "amqp://").replace(
+        "amqps://", "amqps://"
+    ),
     backend=settings.redis_dsn.replace("/0", "/1"),
     include=["src.tasks"],
 )

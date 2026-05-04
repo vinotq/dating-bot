@@ -1,5 +1,3 @@
-import uuid
-
 import httpx
 
 from config import settings

@@ -39,15 +39,21 @@ async def run_migrations() -> None:
             """)
         )
         await conn.execute(
-            text("ALTER TABLE users_schema.profiles ALTER COLUMN age_max SET DEFAULT -1")
+            text(
+                "ALTER TABLE users_schema.profiles ALTER COLUMN age_max SET DEFAULT -1"
+            )
         )
 
         print("003: age_max / range …")
         await conn.execute(
-            text("ALTER TABLE users_schema.profiles DROP CONSTRAINT IF EXISTS profiles_age_max_check")
+            text(
+                "ALTER TABLE users_schema.profiles DROP CONSTRAINT IF EXISTS profiles_age_max_check"
+            )
         )
         await conn.execute(
-            text("ALTER TABLE users_schema.profiles DROP CONSTRAINT IF EXISTS profiles_age_range_check")
+            text(
+                "ALTER TABLE users_schema.profiles DROP CONSTRAINT IF EXISTS profiles_age_range_check"
+            )
         )
         await conn.execute(
             text("""
@@ -65,13 +71,17 @@ async def run_migrations() -> None:
         )
 
         print("005: referral_code …")
-        await conn.execute(text(
-            "ALTER TABLE users_schema.users ADD COLUMN IF NOT EXISTS referral_code VARCHAR(32) UNIQUE"
-        ))
+        await conn.execute(
+            text(
+                "ALTER TABLE users_schema.users ADD COLUMN IF NOT EXISTS referral_code VARCHAR(32) UNIQUE"
+            )
+        )
 
         print("004: age / age_min без верхней границы …")
         await conn.execute(
-            text("ALTER TABLE users_schema.profiles DROP CONSTRAINT IF EXISTS profiles_age_check")
+            text(
+                "ALTER TABLE users_schema.profiles DROP CONSTRAINT IF EXISTS profiles_age_check"
+            )
         )
         await conn.execute(
             text("""
@@ -81,7 +91,9 @@ async def run_migrations() -> None:
             """)
         )
         await conn.execute(
-            text("ALTER TABLE users_schema.profiles DROP CONSTRAINT IF EXISTS profiles_age_min_check")
+            text(
+                "ALTER TABLE users_schema.profiles DROP CONSTRAINT IF EXISTS profiles_age_min_check"
+            )
         )
         await conn.execute(
             text("""

@@ -1,4 +1,9 @@
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
+from aiogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+)
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 BTN_MAIN_PROFILE = "Мой профиль"
@@ -36,9 +41,13 @@ def gender_keyboard() -> ReplyKeyboardMarkup:
 
 
 def cancel_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="Отмена", callback_data="cancel_flow"),
-    ]])
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="Отмена", callback_data="cancel_flow"),
+            ]
+        ]
+    )
 
 
 def looking_for_keyboard() -> ReplyKeyboardMarkup:
@@ -100,7 +109,10 @@ def chat_keyboard() -> ReplyKeyboardMarkup:
 def main_menu_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=BTN_MAIN_SEARCH), KeyboardButton(text=BTN_MAIN_PROFILE)],
+            [
+                KeyboardButton(text=BTN_MAIN_SEARCH),
+                KeyboardButton(text=BTN_MAIN_PROFILE),
+            ],
             [KeyboardButton(text=BTN_MAIN_MATCHES), KeyboardButton(text=BTN_MAIN_HELP)],
             [KeyboardButton(text=BTN_MAIN_INVITE)],
         ],

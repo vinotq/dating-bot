@@ -19,17 +19,27 @@ async def _handle(routing_key: str, payload: dict, redis: Redis) -> None:
         for key in ("user1_id", "user2_id"):
             uid = payload.get(key)
             if uid:
-                send_notification.delay(uid, "match", {
-                    "match_id": payload.get("match_id"),
-                    "partner_id": payload.get("user2_id" if key == "user1_id" else "user1_id"),
-                })
+                send_notification.delay(
+                    uid,
+                    "match",
+                    {
+                        "match_id": payload.get("match_id"),
+                        "partner_id": payload.get(
+                            "user2_id" if key == "user1_id" else "user1_id"
+                        ),
+                    },
+                )
 
     elif routing_key == "referral.created":
         referrer_id = payload.get("referrer_id")
         if referrer_id:
-            send_notification.delay(referrer_id, "referral", {
-                "referred_id": payload.get("referred_id"),
-            })
+            send_notification.delay(
+                referrer_id,
+                "referral",
+                {
+                    "referred_id": payload.get("referred_id"),
+                },
+            )
 
     elif routing_key == "swipe.created" and payload.get("action") == "like":
         swiped_id = payload.get("swiped_id")
@@ -37,9 +47,13 @@ async def _handle(routing_key: str, payload: dict, redis: Redis) -> None:
             rate_key = f"like_notif:{swiped_id}"
             if not await redis.exists(rate_key):
                 await redis.setex(rate_key, LIKE_NOTIF_TTL, "1")
-                send_notification.delay(swiped_id, "like", {
-                    "from_user_id": payload.get("swiper_id"),
-                })
+                send_notification.delay(
+                    swiped_id,
+                    "like",
+                    {
+                        "from_user_id": payload.get("swiper_id"),
+                    },
+                )
 
 
 async def start_consumer() -> None:
