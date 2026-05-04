@@ -25,3 +25,16 @@ class MatchingClient:
         response = await self.client.get(f"{self.base_url}/api/v1/matches/{user_id}")
         response.raise_for_status()
         return response.json()
+
+    async def send_message(self, match_id: str, sender_id: str, body: str) -> dict:
+        response = await self.client.post(
+            f"{self.base_url}/api/v1/messages",
+            json={"match_id": match_id, "sender_id": sender_id, "body": body},
+        )
+        response.raise_for_status()
+        return response.json()
+
+    async def get_messages(self, match_id: str) -> list[dict]:
+        response = await self.client.get(f"{self.base_url}/api/v1/messages/{match_id}")
+        response.raise_for_status()
+        return response.json()

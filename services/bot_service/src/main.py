@@ -1,29 +1,41 @@
 import asyncio
+import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.types import BotCommand
+from prometheus_client import Counter, start_http_server
 from redis.asyncio import Redis
 
 from config import settings
-from dependencies import matching_client, ranking_client, user_client
+from dependencies import matching_client, notification_client, ranking_client, user_client
 from handlers import router
 from mq_consumer import start_match_consumer
 
+messages_sent_total = Counter("bot_messages_sent_total", "Total Telegram messages sent", ["type"])
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='{"time":"%(asctime)s","service":"bot_service","level":"%(levelname)s","msg":"%(message)s"}',
+)
 
 BOT_COMMANDS = [
     BotCommand(command="start", description="Запуск и регистрация"),
     BotCommand(command="search", description="Смотреть анкеты"),
     BotCommand(command="matches", description="Мои мэтчи"),
     BotCommand(command="profile", description="Мой профиль"),
-    BotCommand(command="settings", description="Настройки"),
+    BotCommand(command="invite", description="Пригласить друга"),
+    BotCommand(command="settings", description="Настройки поиска"),
+    BotCommand(command="notifications", description="Настройки уведомлений"),
     BotCommand(command="help", description="Помощь"),
 ]
 
 
 async def main() -> None:
+    start_http_server(8080)
     if not settings.telegram_bot_token:
         raise RuntimeError("TELEGRAM_BOT_TOKEN is empty")
     redis = Redis.from_url(settings.redis_dsn)
@@ -42,6 +54,7 @@ async def main() -> None:
         await user_client.close()
         await ranking_client.close()
         await matching_client.close()
+        await notification_client.close()
 
 
 if __name__ == "__main__":

@@ -4,8 +4,11 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from aiogram.types import ReplyKeyboardRemove
 
+from dependencies import user_client
 from handlers.common import require_profile_for_inline_edit, update_current_profile
 from handlers.settings import start_settings_wizard
+from keyboards import main_menu_keyboard
+from profile_ui import send_profile_content
 from states import EditStates
 
 router = Router()
@@ -127,4 +130,47 @@ async def edit_bio_input(message: Message, state: FSMContext) -> None:
         await message.answer("Ничего себе ты много про себя написал, но этого многовато, укороти чуть-чуть")
         return
     await update_current_profile(message, {"bio": text})
+    await state.clear()
+
+
+@router.callback_query(F.data == "edit_interests")
+async def edit_interests(cb: CallbackQuery, state: FSMContext) -> None:
+    if await require_profile_for_inline_edit(cb) is None:
+        return
+    await _edit_prompt(
+        cb,
+        "<b>Интересы</b> — <i>перечисли через запятую</i>.",
+        state,
+        EditStates.waiting_interests,
+    )
+    await cb.answer()
+
+
+@router.message(EditStates.waiting_interests)
+async def edit_interests_input(message: Message, state: FSMContext) -> None:
+    tg_user = message.from_user
+    if tg_user is None:
+        return
+    raw = (message.text or "").strip()
+    interests = [item.strip().lower() for item in raw.split(",") if item.strip()]
+    unique = list(dict.fromkeys(interests))
+    if not unique:
+        await message.answer("Хотя бы один интерес — перечисли через запятую")
+        return
+    user = await user_client.get_user(tg_user.id)
+    if user is None:
+        return
+    interests_from_api = await user_client.list_interests()
+    by_name = {item["name"].lower(): item["id"] for item in interests_from_api}
+    interest_ids: list[int] = []
+    for name in unique:
+        if name not in by_name:
+            created = await user_client.create_interest(name)
+            by_name[name] = created["id"]
+        interest_ids.append(by_name[name])
+    await user_client.set_user_interests(str(user["id"]), interest_ids)
+    profile = await user_client.get_profile_by_user(str(user["id"]))
+    if profile:
+        await send_profile_content(message, profile)
+    await message.answer("⁠", reply_markup=main_menu_keyboard())
     await state.clear()
