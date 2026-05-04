@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 class UserCreate(BaseModel):
     telegram_id: int
     username: str | None = None
+    referral_code: str | None = None
 
 
 class UserOut(BaseModel):
@@ -13,6 +14,7 @@ class UserOut(BaseModel):
     telegram_id: int
     username: str | None
     is_active: bool
+    referral_code: str | None = None
 
     model_config = {"from_attributes": True}
 

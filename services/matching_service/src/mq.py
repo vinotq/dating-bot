@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from datetime import datetime, timezone
 
 import aio_pika
 
 from src.config import settings
+
+logger = logging.getLogger(__name__)
 
 _exchange: aio_pika.abc.AbstractExchange | None = None
 
@@ -19,9 +22,9 @@ async def connect() -> None:
         _exchange = await channel.declare_exchange(
             "dating.events", aio_pika.ExchangeType.TOPIC, durable=True
         )
-        print("MQ connected")
+        logger.info("MQ connected")
     except Exception as e:
-        print(f"MQ connect failed: {e}")
+        logger.warning("MQ connect failed (non-fatal): %s", e)
 
 
 async def publish(routing_key: str, payload: dict) -> None:
@@ -41,4 +44,4 @@ async def publish(routing_key: str, payload: dict) -> None:
             routing_key=routing_key,
         )
     except Exception as e:
-        print(f"MQ publish error ({routing_key}): {e}")
+        logger.error("MQ publish error: routing_key=%s", routing_key, exc_info=e)

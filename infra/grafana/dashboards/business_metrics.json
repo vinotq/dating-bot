@@ -1,0 +1,104 @@
+{
+  "id": null,
+  "uid": "business-metrics",
+  "title": "Business Metrics",
+  "tags": ["dating-bot"],
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "1m",
+  "time": { "from": "now-24h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Registrations (rate/min)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 8, "h": 7 },
+      "targets": [
+        {
+          "expr": "rate(registrations_total[1m]) * 60",
+          "legendFormat": "registrations/min"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Profiles created (rate/min)",
+      "type": "timeseries",
+      "gridPos": { "x": 8, "y": 0, "w": 8, "h": 7 },
+      "targets": [
+        {
+          "expr": "rate(profiles_created_total[1m]) * 60",
+          "legendFormat": "profiles/min"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Photos uploaded (rate/min)",
+      "type": "timeseries",
+      "gridPos": { "x": 16, "y": 0, "w": 8, "h": 7 },
+      "targets": [
+        {
+          "expr": "rate(photos_uploaded_total[1m]) * 60",
+          "legendFormat": "photos/min"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Swipes (rate/min)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 7, "w": 12, "h": 7 },
+      "targets": [
+        {
+          "expr": "sum(rate(swipes_total[1m])) by (action) * 60",
+          "legendFormat": "{{action}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Matches & messages (rate/min)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 7, "w": 12, "h": 7 },
+      "targets": [
+        {
+          "expr": "rate(matches_total[1m]) * 60",
+          "legendFormat": "matches/min"
+        },
+        {
+          "expr": "rate(messages_total[1m]) * 60",
+          "legendFormat": "messages/min"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Total registrations",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 14, "w": 6, "h": 4 },
+      "targets": [ { "expr": "registrations_total", "legendFormat": "" } ]
+    },
+    {
+      "id": 7,
+      "title": "Total matches",
+      "type": "stat",
+      "gridPos": { "x": 6, "y": 14, "w": 6, "h": 4 },
+      "targets": [ { "expr": "matches_total", "legendFormat": "" } ]
+    },
+    {
+      "id": 8,
+      "title": "Total swipes",
+      "type": "stat",
+      "gridPos": { "x": 12, "y": 14, "w": 6, "h": 4 },
+      "targets": [ { "expr": "sum(swipes_total)", "legendFormat": "" } ]
+    },
+    {
+      "id": 9,
+      "title": "Total messages",
+      "type": "stat",
+      "gridPos": { "x": 18, "y": 14, "w": 6, "h": 4 },
+      "targets": [ { "expr": "messages_total", "legendFormat": "" } ]
+    }
+  ]
+}

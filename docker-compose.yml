@@ -34,7 +34,7 @@ services:
             - "5672:5672"
             - "15672:15672"
         healthcheck:
-            test: ["CMD", "rabbitmq-diagnostics", "ping"]
+            test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
             interval: 10s
             timeout: 5s
             retries: 10
@@ -61,11 +61,13 @@ services:
         environment:
             DATABASE_URL: postgresql+asyncpg://dating_user:dating_pass@postgres:5432/dating_bot
             MINIO_ENDPOINT: minio:9000
+            MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost:9000}
             MINIO_ACCESS_KEY: minioadmin
             MINIO_SECRET_KEY: minioadmin
             MINIO_BUCKET: dating-photos
             MINIO_USE_SSL: "false"
             RABBITMQ_URL: amqp://rabbitadmin:rabbitadminW@rabbitmq:5672/
+            REDIS_DSN: redis://redis:6379/1
         depends_on:
             postgres:
                 condition: service_healthy
@@ -73,8 +75,35 @@ services:
                 condition: service_healthy
             rabbitmq:
                 condition: service_healthy
+            redis:
+                condition: service_healthy
         ports:
             - "8000:8000"
+        healthcheck:
+            test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')\""]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    user_worker:
+        build: ./services/user_service
+        command: celery -A src.celery_app.celery worker --loglevel=info -Q celery
+        environment:
+            DATABASE_URL: postgresql+asyncpg://dating_user:dating_pass@postgres:5432/dating_bot
+            MINIO_ENDPOINT: minio:9000
+            MINIO_ACCESS_KEY: minioadmin
+            MINIO_SECRET_KEY: minioadmin
+            MINIO_BUCKET: dating-photos
+            MINIO_USE_SSL: "false"
+            RABBITMQ_URL: amqp://rabbitadmin:rabbitadminW@rabbitmq:5672/
+            REDIS_DSN: redis://redis:6379/1
+        depends_on:
+            postgres:
+                condition: service_healthy
+            minio:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
 
     matching_service:
         build: ./services/matching_service
@@ -88,6 +117,11 @@ services:
                 condition: service_healthy
         ports:
             - "8001:8000"
+        healthcheck:
+            test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')\""]
+            interval: 10s
+            timeout: 5s
+            retries: 5
 
     ranking_service:
         build: ./services/ranking_service
@@ -95,6 +129,7 @@ services:
             DATABASE_URL: postgresql+asyncpg://dating_user:dating_pass@postgres:5432/dating_bot
             REDIS_DSN: redis://redis:6379/0
             RABBITMQ_URL: amqp://rabbitadmin:rabbitadminW@rabbitmq:5672/
+            MATCHING_SERVICE_URL: http://matching_service:8000
         depends_on:
             postgres:
                 condition: service_healthy
@@ -104,14 +139,33 @@ services:
                 condition: service_healthy
         ports:
             - "8002:8000"
+        healthcheck:
+            test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')\""]
+            interval: 10s
+            timeout: 5s
+            retries: 5
 
-    bot_service:
-        build: ./services/bot_service
+    ranking_worker:
+        build: ./services/ranking_service
+        command: celery -A src.celery_app.celery worker --loglevel=info -Q celery
         environment:
-            TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-            USER_SERVICE_URL: http://user_service:8000
-            RANKING_SERVICE_URL: http://ranking_service:8000
+            DATABASE_URL: postgresql+asyncpg://dating_user:dating_pass@postgres:5432/dating_bot
+            REDIS_DSN: redis://redis:6379/0
+            RABBITMQ_URL: amqp://rabbitadmin:rabbitadminW@rabbitmq:5672/
             MATCHING_SERVICE_URL: http://matching_service:8000
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            rabbitmq:
+                condition: service_healthy
+
+    ranking_beat:
+        build: ./services/ranking_service
+        command: celery -A src.celery_app.celery beat --loglevel=info
+        environment:
+            DATABASE_URL: postgresql+asyncpg://dating_user:dating_pass@postgres:5432/dating_bot
             REDIS_DSN: redis://redis:6379/0
             RABBITMQ_URL: amqp://rabbitadmin:rabbitadminW@rabbitmq:5672/
         depends_on:
@@ -119,13 +173,133 @@ services:
                 condition: service_healthy
             rabbitmq:
                 condition: service_healthy
+
+    notification_service:
+        build: ./services/notification_service
+        environment:
+            DATABASE_URL: postgresql+asyncpg://dating_user:dating_pass@postgres:5432/dating_bot
+            RABBITMQ_URL: amqp://rabbitadmin:rabbitadminW@rabbitmq:5672/
+            REDIS_DSN: redis://redis:6379/0
+            USER_SERVICE_URL: http://user_service:8000
+        depends_on:
+            postgres:
+                condition: service_healthy
+            rabbitmq:
+                condition: service_healthy
             user_service:
-                condition: service_started
+                condition: service_healthy
+        ports:
+            - "8003:8000"
+        healthcheck:
+            test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')\""]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    notification_worker:
+        build: ./services/notification_service
+        command: celery -A src.celery_app.celery worker --loglevel=info
+        environment:
+            DATABASE_URL: postgresql+asyncpg://dating_user:dating_pass@postgres:5432/dating_bot
+            RABBITMQ_URL: amqp://rabbitadmin:rabbitadminW@rabbitmq:5672/
+            REDIS_DSN: redis://redis:6379/0
+            USER_SERVICE_URL: http://user_service:8000
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            rabbitmq:
+                condition: service_healthy
+
+    notification_beat:
+        build: ./services/notification_service
+        command: celery -A src.celery_app.celery beat --loglevel=info
+        environment:
+            DATABASE_URL: postgresql+asyncpg://dating_user:dating_pass@postgres:5432/dating_bot
+            RABBITMQ_URL: amqp://rabbitadmin:rabbitadminW@rabbitmq:5672/
+            REDIS_DSN: redis://redis:6379/0
+            USER_SERVICE_URL: http://user_service:8000
+        depends_on:
+            rabbitmq:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+
+    flower:
+        image: mher/flower:2.0
+        command: celery --broker=amqp://rabbitadmin:rabbitadminW@rabbitmq:5672/ flower
+        environment:
+            CELERY_BROKER_URL: amqp://rabbitadmin:rabbitadminW@rabbitmq:5672/
+        ports:
+            - "5555:5555"
+        depends_on:
+            rabbitmq:
+                condition: service_healthy
+
+    bot_service:
+        build: ./services/bot_service
+        environment:
+            TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+            BOT_USERNAME: ${BOT_USERNAME:-dating_bot}
+            USER_SERVICE_URL: http://user_service:8000
+            RANKING_SERVICE_URL: http://ranking_service:8000
+            MATCHING_SERVICE_URL: http://matching_service:8000
+            REDIS_DSN: redis://redis:6379/0
+            RABBITMQ_URL: amqp://rabbitadmin:rabbitadminW@rabbitmq:5672/
+        ports:
+            - "8080:8080"
+        depends_on:
+            redis:
+                condition: service_healthy
+            rabbitmq:
+                condition: service_healthy
+            user_service:
+                condition: service_healthy
             matching_service:
-                condition: service_started
+                condition: service_healthy
             ranking_service:
-                condition: service_started
+                condition: service_healthy
+
+    prometheus:
+        image: prom/prometheus:latest
+        volumes:
+            - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+        ports:
+            - "9090:9090"
+
+    loki:
+        image: grafana/loki:3.0.0
+        command: -config.file=/etc/loki/loki-config.yml
+        volumes:
+            - ./infra/loki/loki-config.yml:/etc/loki/loki-config.yml
+        ports:
+            - "3100:3100"
+
+    promtail:
+        image: grafana/promtail:3.0.0
+        command: -config.file=/etc/promtail/promtail-config.yml
+        volumes:
+            - ./infra/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml
+            - /var/run/docker.sock:/var/run/docker.sock
+        depends_on:
+            - loki
+
+    grafana:
+        image: grafana/grafana:latest
+        environment:
+            GF_SECURITY_ADMIN_PASSWORD: admin
+        volumes:
+            - grafana_data:/var/lib/grafana
+            - ./infra/grafana/provisioning:/etc/grafana/provisioning
+            - ./infra/grafana/dashboards:/var/lib/grafana/dashboards
+        ports:
+            - "3000:3000"
+        depends_on:
+            - prometheus
+            - loki
 
 volumes:
     postgres_data:
     minio_data:
+    grafana_data:

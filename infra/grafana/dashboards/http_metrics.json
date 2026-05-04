@@ -1,0 +1,60 @@
+{
+  "id": null,
+  "uid": "http-metrics",
+  "title": "HTTP Metrics",
+  "tags": ["dating-bot"],
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "RPS by service",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(starlette_requests_total[1m])) by (app_name)",
+          "legendFormat": "{{app_name}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Error rate (5xx) by service",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(starlette_requests_total{status_code=~\"5..\"}[1m])) by (app_name)",
+          "legendFormat": "{{app_name}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "p95 latency by service (s)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(starlette_requests_processing_time_seconds_bucket[1m])) by (app_name, le))",
+          "legendFormat": "p95 {{app_name}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Requests in progress",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(starlette_requests_in_progress) by (app_name)",
+          "legendFormat": "{{app_name}}"
+        }
+      ]
+    }
+  ]
+}
