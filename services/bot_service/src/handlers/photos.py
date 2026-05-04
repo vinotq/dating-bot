@@ -209,8 +209,8 @@ async def edit_profile_photo_save(message: Message, state: FSMContext, bot: Bot)
             await send_profile_card(message, updated, first_menu_message=m_done)
         return
     await message.answer(
-        "<b>Фото добавлено</b>. Можешь прислать ещё одно или открыть <b>Мой профиль</b> / <b>Помощь</b> ниже.",
-        reply_markup=main_menu_keyboard(),
+        "<b>Фото добавлено</b>. Можешь прислать ещё одно или нажми <b>Назад</b> для выхода.",
+        reply_markup=back_keyboard(),
         parse_mode=ParseMode.HTML,
     )
 

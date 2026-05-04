@@ -1,10 +1,14 @@
 import asyncio
+import base64
 import io
+import logging
 import uuid
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Response, UploadFile
 from minio import Minio
 from minio.error import S3Error
+from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
+from starlette_prometheus import PrometheusMiddleware
 from sqlalchemy import text, select, delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,14 +31,30 @@ from src.schemas import (
     UserOut,
 )
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='{"time":"%(asctime)s","service":"user_service","level":"%(levelname)s","msg":"%(message)s"}',
+)
+
 app = FastAPI(title="User Service", version="0.1.0")
+app.add_middleware(PrometheusMiddleware)
+
+registrations_total = Counter("registrations_total", "Total user registrations")
+profiles_created_total = Counter("profiles_created_total", "Total profiles created")
+photos_uploaded_total = Counter("photos_uploaded_total", "Total photos uploaded")
 
 _minio: Minio | None = None
+_minio_public: Minio | None = None
 
 
 def _get_minio() -> Minio:
     assert _minio is not None, "MinIO client not initialized"
     return _minio
+
+
+def _get_minio_public() -> Minio:
+    assert _minio_public is not None, "MinIO public client not initialized"
+    return _minio_public
 
 
 def _s3_url(s3_key: str) -> str:
@@ -97,13 +117,35 @@ async def recalculate_completeness(db: AsyncSession, profile: Profile) -> None:
     )
 
 
+@app.get("/healthz")
+async def healthz() -> dict:
+    return {"status": "ok"}
+
+
+@app.get("/readyz")
+async def readyz(db: AsyncSession = Depends(get_db)) -> dict:
+    await db.execute(text("SELECT 1"))
+    return {"status": "ok"}
+
+
+@app.get("/metrics")
+async def metrics() -> Response:
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
 @app.on_event("startup")
 async def startup() -> None:
     await mq.connect()
-    global _minio
+    global _minio, _minio_public
     # DDL выполняется в `python -m src.migrate` перед uvicorn (см. Dockerfile).
     _minio = Minio(
         settings.minio_endpoint,
+        access_key=settings.minio_access_key,
+        secret_key=settings.minio_secret_key,
+        secure=settings.minio_use_ssl,
+    )
+    _minio_public = Minio(
+        settings.minio_public_endpoint,
         access_key=settings.minio_access_key,
         secret_key=settings.minio_secret_key,
         secure=settings.minio_use_ssl,
@@ -120,8 +162,19 @@ async def create_user(payload: UserCreate, db: AsyncSession = Depends(get_db)) -
         return existing
     user = User(telegram_id=payload.telegram_id, username=payload.username)
     db.add(user)
+    await db.flush()
+
+    if payload.referral_code:
+        referrer = await db.scalar(select(User).where(User.referral_code == payload.referral_code))
+        if referrer and referrer.id != user.id:
+            await mq.publish("referral.created", {
+                "referrer_id": str(referrer.id),
+                "referred_id": str(user.id),
+            })
+
     await db.commit()
     await db.refresh(user)
+    registrations_total.inc()
     await mq.publish("user.registered", {"user_id": str(user.id), "telegram_id": user.telegram_id})
     return user
 
@@ -155,6 +208,7 @@ async def create_profile(payload: ProfileCreate, db: AsyncSession = Depends(get_
     await recalculate_completeness(db, profile)
     await db.commit()
     await db.refresh(profile)
+    profiles_created_total.inc()
     await mq.publish("profile.created", {"user_id": str(profile.user_id), "profile_id": str(profile.id), "completeness_score": profile.completeness_score})
     return profile
 
@@ -243,6 +297,9 @@ async def upload_photo(
     await db.commit()
     await db.refresh(photo)
     photo_count = await db.scalar(select(text("count(*)")).select_from(Photo).where(Photo.profile_id == profile_id))
+    photos_uploaded_total.inc()
+    from src.tasks import generate_thumbnail
+    generate_thumbnail.delay(s3_key, str(photo_id))
     await mq.publish("photo.uploaded", {"user_id": str(profile.user_id), "profile_id": str(profile_id), "photo_count": int(photo_count or 0)})
     return photo
 
@@ -275,6 +332,27 @@ async def download_profile_photo(
     except S3Error:
         raise HTTPException(status_code=404, detail="Photo file not found in storage")
     return Response(content=content, media_type="image/jpeg")
+
+
+@app.get("/api/v1/profiles/{profile_id}/photos/{photo_id}/presigned")
+async def presigned_photo_url(
+    profile_id: uuid.UUID,
+    photo_id: uuid.UUID,
+    expires: int = 3600,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    profile = await db.get(Profile, profile_id)
+    photo = await db.get(Photo, photo_id)
+    if not profile or not photo or photo.profile_id != profile_id:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    from datetime import timedelta
+    url = await asyncio.to_thread(
+        _get_minio_public().presigned_get_object,
+        settings.minio_bucket,
+        photo.s3_key,
+        expires=timedelta(seconds=expires),
+    )
+    return {"url": url, "expires_in": expires}
 
 
 @app.delete("/api/v1/profiles/{profile_id}/photos/{photo_id}")
@@ -401,3 +479,28 @@ async def set_user_interests(
     await recalculate_completeness(db, profile)
     await db.commit()
     return {"ok": True}
+
+
+def _gen_referral_code(user_id: uuid.UUID) -> str:
+    raw = base64.urlsafe_b64encode(user_id.bytes).decode().rstrip("=")
+    return raw[:16]
+
+
+@app.post("/api/v1/users/{user_id}/referral-code")
+async def get_or_create_referral_code(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> dict:
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not user.referral_code:
+        user.referral_code = _gen_referral_code(user_id)
+        await db.commit()
+        await db.refresh(user)
+    return {"referral_code": user.referral_code}
+
+
+@app.get("/api/v1/referrals/by-code/{code}", response_model=UserOut)
+async def get_user_by_referral_code(code: str, db: AsyncSession = Depends(get_db)) -> User:
+    user = await db.scalar(select(User).where(User.referral_code == code))
+    if not user:
+        raise HTTPException(status_code=404, detail="Referral code not found")
+    return user
