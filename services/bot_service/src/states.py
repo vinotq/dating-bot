@@ -7,8 +7,10 @@ class RegistrationStates(StatesGroup):
     waiting_gender = State()
     waiting_city = State()
     waiting_interests = State()
+    waiting_looking_for = State()
     waiting_bio = State()
     waiting_photo = State()
+    waiting_confirm = State()
 
 
 class EditStates(StatesGroup):
@@ -16,8 +18,13 @@ class EditStates(StatesGroup):
     waiting_age = State()
     waiting_city = State()
     waiting_bio = State()
+    waiting_interests = State()
     waiting_profile_photo = State()
     managing_photos = State()
     waiting_settings_gender = State()
     waiting_settings_age_min = State()
     waiting_settings_age_max = State()
+
+
+class ChatState(StatesGroup):
+    active = State()

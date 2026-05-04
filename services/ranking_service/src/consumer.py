@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 
 import aio_pika
-from sqlalchemy import select, text
+from sqlalchemy import text
 
 from src.config import settings
 from src.db import SessionLocal
-from src.models import Rating
 from src.rating_service import get_or_create_rating, recalculate
+
+logger = logging.getLogger(__name__)
 
 
 async def _handle(routing_key: str, payload: dict) -> None:
@@ -20,7 +22,11 @@ async def _handle(routing_key: str, payload: dict) -> None:
                 await get_or_create_rating(db, user_id)
                 await db.commit()
 
-            elif routing_key in ("profile.created", "profile.updated", "photo.uploaded"):
+            elif routing_key in (
+                "profile.created",
+                "profile.updated",
+                "photo.uploaded",
+            ):
                 user_id = uuid.UUID(payload["user_id"])
                 await recalculate(db, user_id)
 
@@ -43,8 +49,30 @@ async def _handle(routing_key: str, payload: dict) -> None:
                     await db.flush()
                     await recalculate(db, uid)
 
-        except Exception as e:
-            print(f"Consumer error [{routing_key}]: {e}")
+            elif routing_key == "message.sent":
+                if payload.get("is_first_message"):
+                    sender_id = uuid.UUID(payload["sender_id"])
+                    rating = await get_or_create_rating(db, sender_id)
+                    rating.total_chats_initiated += 1
+                    await db.flush()
+                    await recalculate(db, sender_id)
+
+            elif routing_key == "referral.created":
+                referrer_id = uuid.UUID(payload["referrer_id"])
+                referred_id = uuid.UUID(payload["referred_id"])
+                await db.execute(
+                    text("""
+                        INSERT INTO ranking_schema.referrals (id, referrer_id, referred_id)
+                        VALUES (gen_random_uuid(), :referrer_id, :referred_id)
+                        ON CONFLICT DO NOTHING
+                    """),
+                    {"referrer_id": str(referrer_id), "referred_id": str(referred_id)},
+                )
+                await db.flush()
+                await recalculate(db, referrer_id)
+
+        except Exception:
+            logger.exception("Consumer error: routing_key=%s", routing_key)
             await db.rollback()
 
 
@@ -66,6 +94,8 @@ async def start_consumer() -> None:
             "photo.uploaded",
             "swipe.created",
             "match.created",
+            "message.sent",
+            "referral.created",
         ):
             await queue.bind(exchange, routing_key=key)
 
@@ -75,8 +105,8 @@ async def start_consumer() -> None:
                     try:
                         envelope = json.loads(message.body)
                         await _handle(envelope["event_type"], envelope["payload"])
-                    except Exception as e:
-                        print(f"Consumer parse error: {e}")
+                    except Exception:
+                        logger.exception("Consumer parse error")
 
-    except Exception as e:
-        print(f"Consumer start error: {e}")
+    except Exception:
+        logger.exception("Consumer start error")

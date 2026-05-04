@@ -7,3 +7,9 @@ pydantic-settings==2.8.1
 python-multipart==0.0.20
 minio>=7.0.0
 aio-pika==9.4.3
+celery==5.4.0
+celery[redis]==5.4.0
+Pillow==10.4.0
+prometheus-client==0.21.1
+starlette-prometheus==0.10.0
+structlog==24.4.0
