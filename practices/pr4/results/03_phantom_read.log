@@ -1,0 +1,19 @@
+======================================================================
+аномалия 3: phantom read
+======================================================================
+--- read committed ---
+[T1] begin isolation level read committed
+[T1] select count(*) from activity where alchemist_id = 1
+[T1] -> [(2,)]
+[T2] insert into activity (alchemist_id, manuscript_id, name, goal, result, duration_days) values (1, 1, 'фантомная активность', 'появиться без спросу', 'появилась', 1)
+[T1] select count(*) from activity where alchemist_id = 1
+[T1] -> [(3,)]
+[T1] commit
+--- repeatable read ---
+[T1] begin isolation level repeatable read
+[T1] select count(*) from activity where alchemist_id = 1
+[T1] -> [(2,)]
+[T2] insert into activity (alchemist_id, manuscript_id, name, goal, result, duration_days) values (1, 1, 'фантомная активность', 'появиться без спросу', 'появилась', 1)
+[T1] select count(*) from activity where alchemist_id = 1
+[T1] -> [(2,)]
+[T1] commit

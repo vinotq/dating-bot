@@ -1,0 +1,27 @@
+======================================================================
+аномалия 4: lost update
+======================================================================
+--- read committed без блокировок ---
+[T1] begin isolation level read committed
+[T2] begin isolation level read committed
+[T1] select death_year from alchemist where id = 1
+[T1] -> [(1219,)]
+[T2] select death_year from alchemist where id = 1
+[T2] -> [(1219,)]
+[T1] update alchemist set death_year = 1224 where id = 1
+[T2] update alchemist set death_year = 1226 where id = 1
+[T1] commit
+[T2] commit
+[--] death_year = 1226
+--- select for update ---
+[T1] begin
+[T2] begin
+[T1] select death_year from alchemist where id = 1 for update
+[T1] -> [(1219,)]
+[T2] select death_year from alchemist where id = 1 for update
+[T1] update alchemist set death_year = 1224 where id = 1
+[T1] commit
+[T2] -> [(1224,)]
+[T2] update alchemist set death_year = 1231 where id = 1
+[T2] commit
+[--] death_year = 1231
