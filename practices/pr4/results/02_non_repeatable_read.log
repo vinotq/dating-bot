@@ -1,0 +1,21 @@
+======================================================================
+аномалия 2: non-repeatable read
+======================================================================
+--- read committed ---
+[T1] begin isolation level read committed
+[T1] select duration_days from activity where id = 2
+[T1] -> [(40,)]
+[T2] begin
+[T2] update activity set duration_days = 77 where id = 2
+[T2] commit
+[T1] select duration_days from activity where id = 2
+[T1] -> [(77,)]
+[T1] commit
+--- repeatable read ---
+[T1] begin isolation level repeatable read
+[T1] select duration_days from activity where id = 2
+[T1] -> [(40,)]
+[T2] update activity set duration_days = 123 where id = 2
+[T1] select duration_days from activity where id = 2
+[T1] -> [(40,)]
+[T1] commit
