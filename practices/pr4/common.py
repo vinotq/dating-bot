@@ -1,5 +1,6 @@
 import os
 import psycopg
+import pymysql
 
 
 def connect():
@@ -11,6 +12,19 @@ def connect():
         dbname=os.environ.get("PG_DB", "app"),
         autocommit=True,
     )
+
+
+def connect_mysql():
+    conn = pymysql.connect(
+        host=os.environ.get("MYSQL_HOST", "mysql"),
+        port=int(os.environ.get("MYSQL_PORT", 3306)),
+        user=os.environ.get("MYSQL_USER", "app"),
+        password=os.environ.get("MYSQL_PASSWORD", "app"),
+        database=os.environ.get("MYSQL_DB", "app"),
+        charset="utf8mb4",
+        autocommit=False,
+    )
+    return conn
 
 
 class Log:
@@ -30,6 +44,21 @@ class Log:
 
     def close(self):
         self.f.close()
+
+
+def run_mysql(conn, who, sql, lg, fetch=False):
+    lg.line(f"[{who}] {sql}")
+    try:
+        cur = conn.cursor()
+        cur.execute(sql)
+        if fetch:
+            rows = cur.fetchall()
+            lg.line(f"[{who}] -> {rows}")
+            return rows
+    except Exception as e:
+        lg.line(f"[{who}] !! {type(e).__name__}: {e}")
+        raise
+    return None
 
 
 def run(conn, who, sql, lg, fetch=False):

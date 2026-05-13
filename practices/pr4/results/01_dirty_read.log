@@ -1,12 +1,13 @@
 ======================================================================
-аномалия 1: dirty read
+аномалия 1: dirty read (mysql)
 ======================================================================
-[T1] begin isolation level read uncommitted
-[T2] begin isolation level read committed
+[T1] set session transaction isolation level read uncommitted
+[T1] start transaction
+[T2] start transaction
 [T2] update activity set duration_days = 999 where id = 1
 [T1] select duration_days from activity where id = 1
-[T1] -> [(14,)]
+[T1] -> ((999,),)
 [T2] rollback
 [T1] select duration_days from activity where id = 1
-[T1] -> [(14,)]
+[T1] -> ((14,),)
 [T1] commit
